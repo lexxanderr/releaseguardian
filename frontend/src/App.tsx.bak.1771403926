@@ -1,0 +1,39 @@
+import { useEffect, useState } from 'react';
+
+type ReleaseCheck = {
+  id: string;
+  reference: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+};
+
+export default function App() {
+  const [checks, setChecks] = useState<ReleaseCheck[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('http://localhost:3000/checks?take=10', {
+      headers: {
+        'x-rg-role': 'SUPERVISOR',
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => setChecks(data.items))
+      .catch((err) => setError(err.message));
+  }, []);
+
+  return (
+    <div style={{ padding: 24 }}>
+      <h1>ReleaseGuardian</h1>
+
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+
+      <ul>
+        {checks.map((c) => (
+          <li key={c.id}>
+            {c.reference} — <strong>{c.status}</strong>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

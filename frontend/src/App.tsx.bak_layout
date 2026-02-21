@@ -1,0 +1,453 @@
+import { useEffect, useMemo, useState } from 'react';
+import { EvidencePanel } from './components/EvidencePanel';
+import { AddEvidenceForm } from './components/AddEvidenceForm';
+
+type Check = {
+  id: string;
+  reference?: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | string;
+  createdAt: string;
+  scheduledReleaseAt?: string;
+  decidedAt?: string | null;
+  decisionReason?: string | null;
+  _count?: { evidenceItems?: number; auditRecords?: number };
+};
+
+type ChecksResponse = {
+  items: Check[];
+  nextCursor: string | null;
+};
+
+type AuditRecord = {
+  id: string;
+  action: string;
+  actorRole?: string;
+  actorId?: string;
+  createdAt: string;
+  hash?: string;
+  prevHash?: string | null;
+};
+
+const ROLES = ['OFFICER', 'SUPERVISOR', 'AUDITOR'] as const;
+type Role = (typeof ROLES)[number];
+
+const STATUSES = ['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const;
+type StatusFilter = (typeof STATUSES)[number];
+
+export default function App() {
+  const [role, setRole] = useState<Role>('SUPERVISOR');
+  const [evidenceRefreshKey, setEvidenceRefreshKey] = useState(0);
+
+  const [status, setStatus] = useState<StatusFilter>('ALL');
+
+  const [checks, setChecks] = useState<Check[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<Check | null>(null);
+  const [audit, setAudit] = useState<AuditRecord[]>([]);
+  const [verifyOk, setVerifyOk] = useState<boolean | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+
+  const query = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set('take', '10');
+    if (status !== 'ALL') params.set('status', status);
+    return params.toString();
+  }, [status]);
+
+  // List
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+
+    fetch(`/checks?${query}`, { headers: { 'x-rg-role': role } })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return (await res.json()) as ChecksResponse;
+      })
+      .then((data) => setChecks(data.items))
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
+      .finally(() => setLoading(false));
+  }, [query, role]);
+
+  // Details
+  useEffect(() => {
+    if (!selectedId) return;
+
+    setDetail(null);
+    setAudit([]);
+    setVerifyOk(null);
+    setDetailError(null);
+    setDetailLoading(true);
+
+    const h = { 'x-rg-role': role };
+
+    Promise.all([
+      fetch(`/checks/${selectedId}`, { headers: h }).then(async (r) => {
+        if (!r.ok) throw new Error(`Details HTTP ${r.status}`);
+        return (await r.json()) as Check;
+      }),
+
+      // audit endpoint may return an object, not an array
+      fetch(`/checks/${selectedId}/audit`, { headers: h }).then(async (r) => {
+        if (!r.ok) throw new Error(`Audit HTTP ${r.status}`);
+        const data: any = await r.json();
+        const list = Array.isArray(data)
+          ? data
+          : data.items ?? data.records ?? data.auditRecords ?? [];
+        return list as AuditRecord[];
+      }),
+    ])
+      .then(([d, a]) => {
+        setDetail(d);
+        setAudit(a);
+        setVerifyOk(true);
+      })
+      .catch((e: unknown) => {
+        setDetailError(e instanceof Error ? e.message : String(e));
+        setVerifyOk(false);
+      })
+      .finally(() => setDetailLoading(false));
+  }, [selectedId, role]);
+
+  const selected = checks.find((c) => c.id === selectedId);
+
+  // --- strict decision rules ---
+  const evidenceCount =
+    detail && detail._count && typeof detail._count.evidenceItems === 'number'
+      ? detail._count.evidenceItems
+      : 0;
+
+  const canApprove =
+    detail?.status === 'PENDING' &&
+    evidenceCount > 0 &&
+    (role === 'SUPERVISOR' || role === 'AUDITOR');
+
+  const canReject =
+    detail?.status === 'PENDING' &&
+    (role === 'SUPERVISOR' || role === 'AUDITOR');
+
+  const decide = async (action: 'approve' | 'reject') => {
+    if (!selectedId) return;
+
+    try {
+      setDetailLoading(true);
+      setDetailError(null);
+
+      const res = await fetch(`/checks/${selectedId}/${action}`, {
+        method: 'POST',
+        headers: {
+          'x-rg-role': role,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`${res.status}: ${text}`);
+      }
+
+      // close panel after success (list will update on next click / filter)
+      setSelectedId(null);
+      setDetail(null);
+      setAudit([]);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Action failed';
+      setDetailError(msg);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const refreshSelectedDetail = async () => {
+  if (!selectedId) return;
+
+  try {
+    const res = await fetch(`/checks/${selectedId}`, {
+      headers: { 'x-rg-role': role },
+    });
+    if (!res.ok) throw new Error(`Details HTTP ${res.status}`);
+    const d = (await res.json()) as Check;
+    setDetail(d);
+  } catch (e) {
+    console.error(e);
+  }
+};
+
+
+  return (
+    <div
+      style={{
+        padding: 24,
+        fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Arial',
+      }}
+    >
+      <h1 style={{ marginBottom: 16 }}>ReleaseGuardian</h1>
+
+      <div
+        style={{
+          display: 'flex',
+          gap: 12,
+          alignItems: 'center',
+          marginBottom: 16,
+        }}
+      >
+        <label>
+          Demo role:{' '}
+          <select value={role} onChange={(e) => setRole(e.target.value as Role)}>
+            {ROLES.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          {STATUSES.map((s) => (
+            <button
+              key={s}
+              onClick={() => {
+                setStatus(s);
+                setSelectedId(null);
+                setDetailError(null);
+                setDetail(null);
+                setAudit([]);
+              }}
+              style={{
+                padding: '6px 10px',
+                border: '1px solid #ccc',
+                background: status === s ? '#eee' : 'white',
+                cursor: 'pointer',
+              }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 16 }}>
+
+        {/* LIST */}
+        <div>
+          {loading && <p>Loading…</p>}
+          {error && <p style={{ color: 'red' }}>Error: {error}</p>}
+
+          {!loading && !error && (
+            <table
+              border={1}
+              cellPadding={8}
+              cellSpacing={0}
+              style={{ borderCollapse: 'collapse', width: '100%' }}
+            >
+              <thead>
+                <tr>
+                  <th align="left">ID</th>
+                  <th align="left">Status</th>
+                  <th align="left">Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {checks.map((c) => (
+                  <tr
+                    key={c.id}
+                    onClick={() => {
+                      setSelectedId(c.id);
+                      setDetailError(null);
+                    }}
+                    style={{
+                      cursor: 'pointer',
+                      background: c.id === selectedId ? '#f5f5f5' : 'white',
+                    }}
+                    title="Click to view details"
+                  >
+                    <td
+                      style={{
+                        fontFamily:
+                          'ui-monospace, SFMono-Regular, Menlo, monospace',
+                      }}
+                    >
+                      {c.id}
+                    </td>
+                    <td>{c.status}</td>
+                    <td>{new Date(c.createdAt).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* DETAILS */}
+        {selectedId && (
+          <div style={{ border: '1px solid #ddd', borderRadius: 8, padding: 12 }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <strong>Check details</strong>
+              <button
+                onClick={() => {
+                  setSelectedId(null);
+                  setDetailError(null);
+                }}
+                style={{ cursor: 'pointer' }}
+              >
+                Back
+              </button>
+            </div>
+
+            <div style={{ marginTop: 8, fontSize: 13, color: '#444' }}>
+              <div>
+                <span
+                  style={{
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                  }}
+                >
+                  {selected?.id}
+                </span>
+              </div>
+            </div>
+
+            {detailLoading && <p style={{ marginTop: 12 }}>Loading details…</p>}
+            {detailError && (
+              <p style={{ color: 'red', marginTop: 12 }}>Error: {detailError}</p>
+            )}
+
+            {!detailLoading && !detailError && detail && (
+              <>
+                <div style={{ marginTop: 12 }}>
+                  <div>
+                    <b>Reference:</b> {detail.reference ?? '—'}
+                  </div>
+                  <div>
+                    <b>Status:</b> {detail.status}
+                  </div>
+                  <div>
+                    <b>Scheduled:</b>{' '}
+                    {detail.scheduledReleaseAt
+                      ? new Date(detail.scheduledReleaseAt).toLocaleString()
+                      : '—'}
+                  </div>
+                  <div>
+                    <b>Decided at:</b>{' '}
+                    {detail.decidedAt
+                      ? new Date(detail.decidedAt).toLocaleString()
+                      : '—'}
+                  </div>
+                  <div>
+                    <b>Decision reason:</b> {detail.decisionReason ?? '—'}
+                  </div>
+
+                  {/* Add evidence + list evidence */}
+                  {selectedId ? (
+                    <>
+                     <AddEvidenceForm
+  checkId={selectedId}
+  role={role}
+  checkStatus={detail.status}
+  onAdded={() => {
+    setEvidenceRefreshKey((k) => k + 1);
+    refreshSelectedDetail();
+  }}
+/>
+
+
+                      <EvidencePanel
+                        checkId={selectedId}
+                        role={role}
+                        refreshKey={evidenceRefreshKey}
+                      />
+                    </>
+                  ) : null}
+
+                  <div>
+                    <b>Evidence items:</b> {detail._count?.evidenceItems ?? '—'}
+                  </div>
+                  <div>
+                    <b>Audit records:</b>{' '}
+                    {detail._count?.auditRecords ?? audit.length}
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                  <button
+                    disabled={!canApprove}
+                    onClick={() => decide('approve')}
+                    style={{
+                      padding: '6px 12px',
+                      cursor: canApprove ? 'pointer' : 'not-allowed',
+                      background: canApprove ? '#2e7d32' : '#ccc',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 4,
+                    }}
+                    title={canApprove ? 'Approve' : 'Add evidence first'}
+                  >
+                    Approve
+                  </button>
+
+                  <button
+                    disabled={!canReject}
+                    onClick={() => decide('reject')}
+                    style={{
+                      padding: '6px 12px',
+                      cursor: canReject ? 'pointer' : 'not-allowed',
+                      background: canReject ? '#c62828' : '#ccc',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 4,
+                    }}
+                  >
+                    Reject
+                  </button>
+                </div>
+
+                <div style={{ marginTop: 12 }}>
+                  <b>Audit chain:</b>{' '}
+                  {verifyOk === null ? (
+                    '…'
+                  ) : verifyOk ? (
+                    <span style={{ color: 'green' }}>Tamper-proof ✔ verified</span>
+                  ) : (
+                    <span style={{ color: 'red' }}>Verification failed</span>
+                  )}
+                </div>
+
+                <div style={{ marginTop: 12 }}>
+                  <b>Audit trail</b>
+                  {audit.length === 0 ? (
+                    <p>No audit records.</p>
+                  ) : (
+                    <ul style={{ paddingLeft: 18 }}>
+                      {audit.map((a) => (
+                        <li key={a.id}>
+                          <span
+                            style={{
+                              fontFamily:
+                                'ui-monospace, SFMono-Regular, Menlo, monospace',
+                            }}
+                          >
+                            {new Date(a.createdAt).toLocaleString()}
+                          </span>{' '}
+                          — {a.action}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

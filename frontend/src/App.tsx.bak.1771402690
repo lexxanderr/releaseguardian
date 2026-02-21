@@ -1,0 +1,76 @@
+import { useEffect, useState } from "react";
+
+type CheckStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+type ReleaseCheck = {
+  id: string;
+  reference: string;
+  status: CheckStatus;
+  scheduledReleaseAt: string;
+  createdAt: string;
+  decidedAt?: string | null;
+  decidedById?: string | null;
+  decisionReason?: string | null;
+  _count?: { evidenceItems: number; auditRecords: number };
+};
+
+type ListChecksResponse = {
+  items: ReleaseCheck[];
+  nextCursor: string | null;
+};
+
+const API_BASE = "http://localhost:3000";
+
+async function apiGet<T>(path: string, role?: string): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: role ? { "x-rg-role": role } : {},
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const msg = body?.message || `${res.status} ${res.statusText}`;
+    throw new Error(msg);
+  }
+  return (await res.json()) as T;
+}
+
+export default functioexport default functioexportRolexport default functioexport default functioDITexport default functioconsexport default functioexport default functkStaexport default functioexport default functioexportRolaseCexport default funct [export setErroexport defaultstring | null>(null);
+  const   const   const   const   cotate(false);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+                                 Se                                 Se                     tus", st                     ta = aw                    sResp                          g()}`,                                  Se
+    } c    } c    } c    } c    } c    } c    } c    } c    } c    } c         } c    } c    } c    } c    } c    } c   ing(f    } c    } c    } c    } c    } c    } c    ()          } c    } c le    } c    } c    } c    } c    } c    } c    } c  st    } c    } c    } c    } c    } c    } c    } c    } c    } capple    } c    } c    }Roboto, san    } c    } c    } c    } c     980,    } c    } c    } c    } c    } c    } c    } c    } c    } ceaseGuardian (Demo UI)</h1>
+      <p style={{ marginTop: 0, color: "#555" }}>
+        Pulling from <code>{API_BASE}</code> • role header: <code>x-rg-role</code>
+      </p>
+
+      <div style={{ display: "flex", gap: 12, alignItems: "cent      <div style={{ display:      <label>
+                              <select value={role} onCha                  e(                              <select value={role} onCha                  e(                              <select value={role} onCha                  e(                              <select value={role} onCha           /l                              <select value={role} onCha                  e(                              <select value={role} onCha                  e(                              <select value={role} onCha                  e(                              <select value={role} onCha           /l                              <select value={role} onCha                  e(                              <select value={role} onCha                  e(                        in                              <select valueton>
+
+                                                                                   /di          <d                                                                                   /di          <d    add                                                                                   /di          <d                                                                                   /di          <d    add                                                                                   /di          <d                                                                                   /di          <d    add                                                                                   /di          <d                                                                                   /di          <d    add                                                                                   /di          <d                                                                                   /di          <d    add      >
+                  <div style={{ fontWeight: 700 }}>{c.status}</div>
+                  <div style={{ color: "#666", fontSize: 13 }}>
+                    evidence: {c._count?.evidenceItems ?? "-"} • audit: {c._count?.auditRecords ?? "-"}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 8, color: "#444", fontSize: 13, display: "flex", gap: 18, flexWrap: "wrap" }}>
+                <span>scheduled: {new Date(c.scheduledReleaseAt).toLocaleString()}</span>
+                <span>created: {new Date(c.createdAt).toLocaleString()}</span>
+                {c.decidedAt ? <span>decided: {new Date(c.decidedAt).toLocaleString()}</span> : null}
+              </div>
+            </li>
+          ))}
+
+          {!loading && checks.length === 0 && (
+            <li style={{ padding: 12, color: "#666" }}>
+              No checks found. (Try Status = all)
+            </li>
+          )}
+        </ul>
+      </div>
+    </div>
+  );
+}

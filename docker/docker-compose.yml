@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: releaseguardian-db
+    environment:
+      POSTGRES_USER: rg
+      POSTGRES_PASSWORD: rg
+      POSTGRES_DB: releaseguardian
+    ports:
+      - "5432:5432"
+    volumes:
+      - rg_pgdata:/var/lib/postgresql/data
+
+volumes:
+  rg_pgdata:

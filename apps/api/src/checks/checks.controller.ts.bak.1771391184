@@ -1,0 +1,96 @@
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { ChecksService } from './checks.service';
+import { CreateCheckDto } from './dto/create-check.dto';
+import { AddEvidenceDto } from './dto/add-evidence.dto';
+import { RejectCheckDto } from './dto/reject-check.dto';
+
+import { Roles } from 'src/auth/roles/roles.decorator';
+import { RolesGuard } from 'src/auth/roles/roles.guard';
+import { Role } from 'src/auth/roles/role.enum';
+
+@Controller('checks')
+export class ChecksController {
+  constructor(private readonly checks: ChecksService) {}
+
+  @Post()
+  async create(@Body() dto: CreateCheckDto) {
+    const actorId = process.env.DEV_ACTOR_ID;
+    if (!actorId) throw new Error('DEV_ACTOR_ID missing in .env (dev-only)');
+    return this.checks.create(dto, actorId);
+  }
+
+  @Post(':id/evidence')
+  async addEvidence(@Param('id') checkId: string, @Body() dto: AddEvidenceDto) {
+    const actorId = process.env.DEV_ACTOR_ID;
+    if (!actorId) throw new Error('DEV_ACTOR_ID missing in .env (dev-only)');
+    return this.checks.addEvidence(checkId, dto, actorId);
+  }
+
+  @Post(':id/approve')
+  @UseGuards(RolesGuard)
+  @Roles(Role.SUPERVISOR, Role.AUDITOR)
+  async approve(@Param('id') checkId: string) {
+    const actorId = process.env.DEV_ACTOR_ID;
+    if (!actorId) throw new Error('DEV_ACTOR_ID missing in .env (dev-only)');
+    return this.checks.approve(checkId, actorId);
+  }
+
+  @Post(':id/reject')
+  @UseGuards(RolesGuard)
+  @Roles(Role.SUPERVISOR, Role.AUDITOR)
+  async reject(@Param('id') checkId: string, @Body() dto: RejectCheckDto) {
+    const actorId = process.env.DEV_ACTOR_ID;
+    if (!actorId) throw new Error('DEV_ACTOR_ID missing in .env (dev-only)');
+    return this.checks.reject(checkId, dto.reason, actorId);
+  }
+
+  @Get()
+  async listChecks(
+    @Query('q') q?: string,
+    @Query('status') status?: 'PENDING' | 'APPROVED' | 'REJECTED',
+    @Query('take') take?: string,
+    @Query('cursor') cursor?: string,
+    @Query('sort') sort?: 'createdAt' | 'scheduledReleaseAt',
+    @Query('order') order?: 'asc' | 'desc',
+  ) {
+    return this.checks.listChecks({
+      q: q?.trim() || undefined,
+      status,
+      take: take ? Number(take) : undefined,
+      cursor: cursor || undefined,
+      sort,
+      order,
+    });
+  }
+
+  @Get(':id')
+  async getCheck(@Param('id') checkId: string) {
+    return this.checks.getCheck(checkId);
+  }
+
+  @Get(':id/evidence')
+  async listEvidence(
+    @Param('id') checkId: string,
+    @Query('take') take?: string,
+    @Query('cursor') cursor?: string,
+  ) {
+    return this.checks.listEvidence(checkId, {
+      take: take ? Number(take) : undefined,
+      cursor: cursor || undefined,
+    });
+  }
+
+  @Get(':id/audit')
+  async listAudit(
+    @Param('id') checkId: string,
+    @Query('verify') verify?: string,
+    @Query('take') take?: string,
+    @Query('cursor') cursor?: string,
+  ) {
+    return this.checks.listAudit(checkId, {
+      verify: verify === 'true',
+      take: take ? Number(take) : undefined,
+      cursor: cursor || undefined,
+    });
+  }
+}

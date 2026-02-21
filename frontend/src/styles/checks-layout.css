@@ -1,0 +1,726 @@
+/* =========================================================
+   ReleaseGuardian — FINAL CSS v2
+   Desktop: internal panel scroll + pinned footer
+   Mobile: page scroll + stacked layout
+   ========================================================= */
+
+/* ---------- Base ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: #fff;
+  color: #0f172a;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  background: #fff;
+}
+
+:where(button, select, a, input, textarea):focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.35);
+  outline-offset: 2px;
+  border-color: #60a5fa;
+}
+
+/* =========================================================
+   Shell / container
+   ========================================================= */
+.rg-shell {
+  min-height: 100vh;
+  background: #fff;
+}
+
+/* Container becomes a full-height flex column (desktop) */
+.rg-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+}
+
+/* =========================================================
+   Header (make it look less boring)
+   ========================================================= */
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+
+  padding: 18px 18px 14px;
+  margin-bottom: 16px;
+
+  background: linear-gradient(180deg, #f1f5f9 0%, #ffffff 100%);
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.06);
+}
+/* =========================================================
+   ReleaseGuardian logo (simple, enterprise)
+   ========================================================= */
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rg-logo {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.rg-title-text h1 {
+  margin: 0;
+}
+
+.rg-title-text .page-subtitle {
+  margin-top: 4px;
+}
+
+.page-title h1 {
+  margin: 0;
+  font-size: 44px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+}
+
+.page-subtitle {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.page-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.role-switch label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.role-switch select {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+}
+
+/* =========================================================
+   Filters
+   ========================================================= */
+.filters {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-btn {
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.filter-btn:hover {
+  background: #f9fafb;
+}
+
+.filter-btn.active {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #1e3a8a;
+}
+
+/* =========================================================
+   Main layout (base)
+   ========================================================= */
+.checks-layout {
+  display: grid;
+  grid-template-columns: 1fr minmax(420px, 520px);
+  gap: 24px;
+  align-items: stretch;
+}
+
+/* Left column */
+.checks-table {
+  min-width: 0;
+}
+
+/* Right column */
+.checks-panel {
+  min-width: 0;
+  border-left: 1px solid #eef2f7;
+  padding-left: 24px;
+  position: relative;
+}
+
+/* Subtle divider glow */
+.checks-panel::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 0;
+  bottom: 0;
+  width: 24px;
+  pointer-events: none;
+  background: linear-gradient(to right, rgba(15, 23, 42, 0.06), transparent);
+}
+
+/* =========================================================
+   Table surface + sticky header
+   ========================================================= */
+.table-shell {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+
+  overflow: auto;     /* sticky thead works with overflow container */
+  min-height: 220px;  /* stops loading collapse */
+}
+
+.table-shell table {
+  width: 100%;
+  table-layout: fixed;
+  border: none;
+  border-collapse: collapse;
+}
+
+.table-shell th,
+.table-shell td {
+  border: none;
+  border-bottom: 1px solid #eef2f7;
+  vertical-align: top;
+}
+
+.table-shell thead th {
+  background: #f9fafb;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  box-shadow: 0 1px 0 #eef2f7, 0 10px 20px rgba(15, 23, 42, 0.04);
+}
+
+.table-shell tbody tr:hover {
+  background: #f9fafb;
+}
+
+.table-shell tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.col-id { width: 40%; }
+.col-status { width: 20%; }
+.col-created { width: 40%; }
+
+.col-sub {
+  font-size: 11px;
+  font-weight: 400;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.row-active {
+  background: #f5f5f5;
+}
+
+/* =========================================================
+   Status pill
+   ========================================================= */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #111827;
+}
+
+.status-approved {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+.status-pending {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.status-rejected {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+/* =========================================================
+   Skeletons
+   ========================================================= */
+.skel-row td {
+  padding: 10px 8px;
+}
+
+.skel {
+  display: inline-block;
+  height: 12px;
+  border-radius: 6px;
+  background: #e5e7eb;
+  position: relative;
+  overflow: hidden;
+}
+
+.skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: skel-shimmer 1.1s infinite;
+}
+
+@keyframes skel-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+/* =========================================================
+   Right panel card + sticky header (desktop)
+   ========================================================= */
+.panel-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+}
+
+.panel-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 10px 12px;
+  margin: -12px -12px 12px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #eef2f7;
+}
+
+.panel-back {
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.panel-back:hover {
+  background: #f3f4f6;
+}
+
+/* =========================================================
+   Footer
+   - Desktop: pinned at bottom (always visible)
+   - Mobile: normal flow
+   ========================================================= */
+.rg-footer {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid #eef2f7;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+/* =========================================================
+   DESKTOP BEHAVIOUR: lock page scroll, scroll inside columns,
+   keep footer pinned.
+   ========================================================= */
+@media (min-width: 901px) {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    overflow: hidden; /* IMPORTANT: no page scroll on desktop */
+  }
+
+  .rg-shell {
+    height: 100%;
+  }
+
+  .rg-container {
+    height: 100vh;              /* full viewport */
+    display: flex;
+    flex-direction: column;     /* header -> layout -> footer */
+    padding-bottom: 16px;
+
+/* STEP 2: iOS micro-drift fix */
+ 
+
+  }
+
+  .checks-layout {
+    flex: 1;        /* take remaining height */
+    min-height: 0;  /* CRITICAL: allows children to scroll */
+    overflow: hidden;
+  }
+
+  /* Make BOTH columns real scroll containers */
+  .checks-table,
+  .checks-panel {
+    min-height: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Footer pinned at bottom of viewport (not mobile) */
+  .rg-footer {
+    margin-top: 0;
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    padding-bottom: 10px;
+  }
+}
+
+/* =========================================================
+   MOBILE: stack + normal page scroll (no freeze)
+   ========================================================= */
+/* =========================================================
+   MOBILE: stack + normal page scroll (no freeze)
+   (CLEANED: removes duplicated/nested @media that causes drift)
+   ========================================================= */
+@media (max-width: 900px) {
+  /* Stack panels */
+  .checks-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .checks-panel {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid #eef2f7;
+    padding-top: 16px;
+  }
+
+  /* Avoid nested scroll traps on mobile */
+  .checks-table,
+  .checks-panel {
+    overflow: visible;
+  }
+
+  /* Table can scroll horizontally if needed */
+  .table-shell {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-shell table {
+    min-width: 560px; /* keep your existing behaviour */
+  }
+
+  /* Details header should NOT be sticky on mobile */
+  .panel-header {
+    position: static;
+    margin: 0 0 10px 0;
+    padding: 0;
+    background: transparent;
+    backdrop-filter: none;
+    border-bottom: none;
+  }
+}
+@media (max-width: 520px) {
+  .rg-container {
+    padding: 16px;
+  }
+
+  .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .page-title h1 {
+    font-size: 34px;
+    line-height: 1.08;
+  }
+
+  .page-controls {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .filters {
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+
+  .filter-btn {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 12px;
+  }
+
+  .role-switch select,
+  .panel-back {
+    min-height: 44px;
+  }
+}
+/* =========================================================
+   iPHONE FIX: stop tiny horizontal overflow (causes right drift)
+   + Optional: make header section vertically scrollable on mobile
+   ========================================================= */
+
+/* 1) Hard-kill horizontal overflow at the top level (safe) */
+@media (max-width: 900px) {
+  html,
+  body,
+  #root,
+  .rg-shell {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden; /* key: prevents the drift */
+  }
+
+  /* 2) Ensure container is mathematically centered + equal padding */
+  .rg-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+
+    /* balanced padding (safe-area aware) */
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  /* 3) Force the header card to be full-width (prevents any nudge) */
+  .page-header {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
+/* OPTIONAL: make the HEADER CARD scroll vertically on small screens */
+@media (max-width: 520px) {
+  .page-header {
+    max-height: 60vh;                 /* adjust if you want */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* =========================================================
+   MOBILE: filter row alignment polish
+   ========================================================= */
+@media (max-width: 520px) {
+  .filters {
+    width: 100%;
+    justify-content: center;   /* keeps pills centered */
+    overflow-x: auto;          /* allows scroll instead of clipping */
+    -webkit-overflow-scrolling: touch;
+    padding: 4px 2px 6px;
+    gap: 10px;
+  }
+
+  .filter-btn {
+    flex: 0 0 auto;            /* prevents squishing/cropping */
+  }
+}/* =========================================================
+   MOBILE: wrapped filters (no horizontal scroll)
+   ========================================================= */
+@media (max-width: 520px) {
+  .filters {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    flex-wrap: wrap;           /* wrap to next line when needed */
+    gap: 10px 12px;            /* vertical | horizontal spacing */
+    row-gap: 8px; 
+    padding-top: 6px;
+  }
+
+  .filter-btn {
+    flex: 0 0 auto;            /* never stretch or crop */
+    min-width: 72px;          /* keeps buttons visually balanced */
+    text-align: center;
+  }
+}
+
+/* =========================================================
+   MOBILE HEADER FLOW FIX (left-aligned, cleaner rhythm)
+   Paste at bottom of file
+   ========================================================= */
+@media (max-width: 520px) {
+  /* Make the header read top-to-bottom (no left-right-center zigzag) */
+  .page-header {
+    align-items: flex-start;
+    text-align: left;
+    gap: 14px;
+  }
+
+  /* Put "Demo role" in the same left column flow */
+  .page-controls {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  /* Filters should align with the content column, not float center */
+  .filters {
+    justify-content: flex-start;
+  }
+}
+
+/* =========================================================
+   FINAL MOBILE FILTERS (<=520px): ALWAYS 1 LINE
+   Overrides earlier duplicate rules
+   ========================================================= */
+@media (max-width: 520px) {
+  /* Keep header flow clean */
+  .page-header {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .page-controls {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  /* Force filters into 4 equal buttons on one row */
+  .filters {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding-top: 6px;
+
+    /* kill old scroll/wrap behaviours */
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .filter-btn {
+    width: 100%;
+    min-width: 0;        /* IMPORTANT: allow shrinking */
+    height: 38px;
+    padding: 0 8px;
+    font-size: 12px;
+    border-radius: 10px;
+    text-align: center;
+    white-space: nowrap; /* keep label on one line */
+  }
+}
+
+/* =========================================================
+   MOBILE (<=520): ensure Role switch is always visible
+   ========================================================= */
+@media (max-width: 520px) {
+  .page-controls {
+    overflow: visible;        /* stop hiding items off-screen */
+    flex-wrap: wrap;          /* allow role + filters to wrap */
+    justify-content: flex-start;
+    gap: 10px;
+  }
+
+  .role-switch {
+    width: 100%;
+  }
+
+  .role-switch label {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .role-switch select {
+    width: 100%;
+    height: 40px;
+  }
+}
+/* =========================================================
+   iOS SAFARI: make <select> value visible on mobile
+   ========================================================= */
+@media (max-width: 520px) {
+  .role-switch select {
+    appearance: none;
+    -webkit-appearance: none;
+
+    background-color: #ffffff;
+    color: #0f172a;
+
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+
+    height: 44px;
+    padding: 0 40px 0 12px; /* space for arrow */
+    line-height: 44px;
+    font-size: 16px;        /* prevents iOS zoom + improves legibility */
+
+    box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+  }
+
+  /* Add a dropdown arrow so it doesn't look empty */
+  .role-switch {
+    position: relative;
+  }
+
+  .role-switch::after {
+    content: "▾";
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6b7280;
+    pointer-events: none;
+    font-size: 14px;
+  }
+}

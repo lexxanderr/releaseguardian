@@ -1,0 +1,391 @@
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import * as crypto from 'crypto';
+import { PrismaService } from '../prisma/prisma.service';
+import { AddEvidenceDto } from './dto/add-evidence.dto';
+import { CreateCheckDto } from './dto/create-check.dto';
+
+@Injectable()
+export class ChecksService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  private sha256(input: string) {
+    return crypto.createHash('sha256').update(input).digest('hex');
+  }
+
+  private async nextAuditHash(
+    tx: any,
+    checkId: string,
+    payload: Record<string, any>,
+  ): Promise<{ prevHash: string | null; hash: string; timestamp: string }> {
+    const prev = await tx.auditRecord.findFirst({
+      where: { checkId },
+      orderBy: { createdAt: 'desc' },
+      select: { hash: true },
+    });
+
+    const prevHash = prev?.hash ?? null;
+    const timestamp = new Date().toISOString();
+    const hash = this.sha256(
+      `${prevHash ?? ''}|${JSON.stringify(payload)}|${timestamp}`,
+    );
+
+    return { prevHash, hash, timestamp };
+  }
+
+  async create(dto: CreateCheckDto, actorId: string) {
+    return this.prisma.$transaction(async (tx: any) => {
+      const check = await tx.releaseCheck.create({
+        data: {
+          reference: dto.reference,
+          scheduledReleaseAt: new Date(dto.scheduledReleaseAt),
+          createdById: actorId,
+        },
+      });
+
+      const payload = {
+        reference: check.reference,
+        scheduledReleaseAt: check.scheduledReleaseAt.toISOString(),
+      };
+
+      const { prevHash, hash } = await this.nextAuditHash(tx, check.id, payload);
+
+      await tx.auditRecord.create({
+        data: {
+          checkId: check.id,
+          actorId,
+          action: 'CHECK_CREATED',
+          payload,
+          prevHash,
+          hash,
+        },
+      });
+
+      return check;
+    });
+  }
+
+  async addEvidence(checkId: string, dto: AddEvidenceDto, actorId: string) {
+    return this.prisma.$transaction(async (tx: any) => {
+      const check = await tx.releaseCheck.findUnique({ where: { id: checkId } });
+      if (!check) throw new NotFoundException('Release check not found');
+
+      const evidence = await tx.evidenceItem.create({
+        data: {
+          checkId,
+          type: dto.type,
+          value: dto.value,
+          source: dto.source ?? null,
+          createdById: actorId,
+        },
+      });
+
+      const payload = {
+        evidenceId: evidence.id,
+        type: evidence.type,
+        source: evidence.source ?? null,
+      };
+
+      const { prevHash, hash } = await this.nextAuditHash(tx, checkId, payload);
+
+      await tx.auditRecord.create({
+        data: {
+          checkId,
+          actorId,
+          action: 'EVIDENCE_RECORDED',
+          payload,
+          prevHash,
+          hash,
+        },
+      });
+
+      return evidence;
+    });
+  }
+
+  // B1) Approve a check
+  async approve(checkId: string, actorId: string) {
+    return this.prisma.$transaction(async (tx: any) => {
+      const check = await tx.releaseCheck.findUnique({
+        where: { id: checkId },
+        select: { id: true, status: true },
+      });
+      if (!check) throw new NotFoundException('Release check not found');
+
+      if (check.status !== 'PENDING') {
+        throw new ConflictException('Check is already ' + check.status);
+      }
+
+      const evidenceCount = await tx.evidenceItem.count({ where: { checkId } });
+      if (evidenceCount < 1) {
+        throw new BadRequestException('Cannot approve a check with no evidence');
+      }
+
+      const updated = await tx.releaseCheck.update({
+        where: { id: checkId },
+        data: {
+          status: 'APPROVED',
+          decidedAt: new Date(),
+          decidedById: actorId,
+          decisionReason: null,
+        },
+      });
+
+      const payload = { status: 'APPROVED', evidenceCount };
+      const { prevHash, hash } = await this.nextAuditHash(tx, checkId, payload);
+
+      await tx.auditRecord.create({
+        data: {
+          checkId,
+          actorId,
+          action: 'CHECK_APPROVED',
+          payload,
+          prevHash,
+          hash,
+        },
+      });
+
+      return updated;
+    });
+  }
+
+  // B2) Reject a check
+  async reject(checkId: string, reason: string | undefined, actorId: string) {
+    return this.prisma.$transaction(async (tx: any) => {
+      const check = await tx.releaseCheck.findUnique({
+        where: { id: checkId },
+        select: { id: true, status: true },
+      });
+      if (!check) throw new NotFoundException('Release check not found');
+
+      if (check.status !== 'PENDING') {
+        throw new ConflictException('Check is already ' + check.status);
+      }
+
+      const updated = await tx.releaseCheck.update({
+        where: { id: checkId },
+        data: {
+          status: 'REJECTED',
+          decidedAt: new Date(),
+          decidedById: actorId,
+          decisionReason: reason ?? null,
+        },
+      });
+
+      const payload = { status: 'REJECTED', reason: reason ?? null };
+      const { prevHash, hash } = await this.nextAuditHash(tx, checkId, payload);
+
+      await tx.auditRecord.create({
+        data: {
+          checkId,
+          actorId,
+          action: 'CHECK_REJECTED',
+          payload,
+          prevHash,
+          hash,
+        },
+      });
+
+      return updated;
+    });
+  }
+
+  // A0) Dashboard list
+  async listChecks(params: {
+    q?: string;
+    status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+    take?: number;
+    cursor?: string;
+    sort?: 'createdAt' | 'scheduledReleaseAt';
+    order?: 'asc' | 'desc';
+  }) {
+    const {
+      q,
+      status,
+      take = 20,
+      cursor,
+      sort = 'createdAt',
+      order = 'desc',
+    } = params;
+
+    const where: any = {};
+
+    if (q) {
+      where.OR = [{ reference: { contains: q, mode: 'insensitive' } }];
+    }
+
+    if (status) {
+      const allowedStatuses = new Set(['PENDING', 'APPROVED', 'REJECTED']);
+      if (!allowedStatuses.has(status)) {
+        throw new BadRequestException('Invalid status');
+      }
+      where.status = status;
+    }
+
+    const rows = await this.prisma.releaseCheck.findMany({
+      where,
+      take: take + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      orderBy: { [sort]: order },
+      select: {
+        id: true,
+        reference: true,
+        scheduledReleaseAt: true,
+        createdAt: true,
+        updatedAt: true,
+        status: true,
+        decidedAt: true,
+        decidedById: true,
+        decisionReason: true,
+        createdById: true,
+        _count: { select: { evidenceItems: true, auditRecords: true } },
+        // optional preview
+        evidenceItems: {
+          take: 1,
+          orderBy: { createdAt: 'desc' },
+          select: { createdAt: true, type: true },
+        },
+      },
+    });
+
+    const hasNext = rows.length > take;
+    const items = hasNext ? rows.slice(0, take) : rows;
+
+    return {
+      items,
+      nextCursor: hasNext ? items[items.length - 1]?.id : null,
+    };
+  }
+
+  async getCheck(checkId: string) {
+    const check = await this.prisma.releaseCheck.findUnique({
+      where: { id: checkId },
+      include: {
+        _count: { select: { evidenceItems: true, auditRecords: true } },
+      },
+    });
+    if (!check) throw new NotFoundException('Release check not found');
+    return check;
+  }
+
+  async listEvidence(checkId: string, opts?: { take?: number; cursor?: string }) {
+    const take = opts?.take ?? 50;
+    if (!Number.isFinite(take) || take <= 0 || take > 200) {
+      throw new BadRequestException('take must be between 1 and 200');
+    }
+
+    const exists = await this.prisma.releaseCheck.findUnique({
+      where: { id: checkId },
+      select: { id: true },
+    });
+    if (!exists) throw new NotFoundException('Release check not found');
+
+    const rows = await this.prisma.evidenceItem.findMany({
+      where: { checkId },
+      orderBy: { createdAt: 'desc' },
+      take: take + 1,
+      ...(opts?.cursor ? { skip: 1, cursor: { id: opts.cursor } } : {}),
+      select: {
+        id: true,
+        checkId: true,
+        type: true,
+        value: true,
+        source: true,
+        createdAt: true,
+        createdById: true,
+        createdBy: { select: { id: true, email: true, role: true } },
+      },
+    });
+
+    const normalizeValue = (v: string) => {
+      const t = (v ?? '').trim();
+      // Handles legacy JSON-string rows like: "\"https://example.com\""
+      if (t.startsWith('"') && t.endsWith('"')) {
+        try {
+          const parsed = JSON.parse(t);
+          return typeof parsed === 'string' ? parsed : v;
+        } catch {
+          return v;
+        }
+      }
+      return v;
+    };
+
+    const mapped = rows.map((r) => ({
+  ...r,
+  value: normalizeValue(String(r.value)),
+}));
+
+
+    const hasNext = mapped.length > take;
+    const items = hasNext ? mapped.slice(0, take) : mapped;
+
+    return {
+      items,
+      nextCursor: hasNext ? items[items.length - 1]?.id : null,
+    };
+  }
+
+  async listAudit(
+    checkId: string,
+    opts?: { verify?: boolean; take?: number; cursor?: string },
+  ) {
+    const take = opts?.take ?? 200;
+    if (!Number.isFinite(take) || take <= 0 || take > 500) {
+      throw new BadRequestException('take must be between 1 and 500');
+    }
+
+    const exists = await this.prisma.releaseCheck.findUnique({
+      where: { id: checkId },
+      select: { id: true },
+    });
+    if (!exists) throw new NotFoundException('Release check not found');
+
+    const items = await this.prisma.auditRecord.findMany({
+      where: { checkId },
+      orderBy: { createdAt: 'asc' },
+      take,
+      ...(opts?.cursor ? { skip: 1, cursor: { id: opts.cursor } } : {}),
+      select: {
+        id: true,
+        createdAt: true,
+        checkId: true,
+        actorId: true,
+        action: true,
+        payload: true,
+        prevHash: true,
+        hash: true,
+      },
+    });
+
+    const nextCursor = items.length === take ? items[items.length - 1].id : null;
+
+    if (!opts?.verify) return { items, nextCursor };
+
+    return { items, nextCursor, verification: this.verifyAuditChain(items) };
+  }
+
+  private verifyAuditChain(rows: Array<{ prevHash: string | null; hash: string }>) {
+    let ok = true;
+    const issues: Array<{ index: number; reason: string }> = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      if (!rows[i].hash) {
+        ok = false;
+        issues.push({ index: i, reason: 'Missing hash' });
+      }
+      if (i === 0) continue;
+
+      if ((rows[i].prevHash ?? null) !== (rows[i - 1].hash ?? null)) {
+        ok = false;
+        issues.push({ index: i, reason: 'prevHash does not match previous hash' });
+      }
+    }
+
+    return { ok, issues, total: rows.length };
+  }
+}

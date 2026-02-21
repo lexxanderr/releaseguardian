@@ -1,0 +1,123 @@
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateCheckDto } from './dto/create-check.dto';
+import { AddEvidenceDto } from './dto/add-evidence.dto';
+import * as crypto from 'crypto';
+
+@Injectable()
+export class ChecksService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  private sha256(input: string) {
+    return crypto.createHash('sha256').update(input).digest('hex');
+  }
+
+  private async nextAuditHash(
+    tx: any,
+    checkId: string,
+    payload: Record<string, any>,
+  ) {
+    const prev = await tx.auditRecord.findFirst({
+      where: { checkId },
+      orderBy: { createdAt: 'desc' },
+      select: { hash: true },
+    });
+
+    const prevHash = prev?.hash ?? null;
+    const timestamp = new Date().toISOString();
+    const hash = this.sha256(
+      `${prevHash ?? ''}|${JSON.stringify(payload)}|${timestamp}`,
+    );
+
+    return { prevHash, hash, timestamp };
+  }
+
+  async approve(checkId: string, actorId: string) {
+    return this.prisma.$transaction(async (tx: any) => {
+      const check = await tx.releaseCheck.findUnique({
+        where: { id: checkId },
+        select: { id: true, status: true },
+      });
+      if (!check) throw new NotFoundException('Release check not found');
+
+      if (check.status !== 'PENDING') {
+        throw new BadRequestException(`Check is already ${check.status}`);
+      }
+
+      const evidenceCount = await tx.evidenceItem.count({ where: { checkId } });
+      if (evidenceCount < 1) {
+        throw new BadRequestException('Cannot approve a check with no evidence');
+      }
+
+      const updated = await tx.releaseCheck.update({
+        where: { id: checkId },
+        data: {
+          status: 'APPROVED',
+          decidedAt: new Date(),
+          decidedById: actorId,
+          decisionReason: null,
+        },
+      });
+
+      const payload = { status: 'APPROVED', evidenceCount };
+      const { prevHash, hash } = await this.nextAuditHash(tx, checkId, payload);
+
+      await tx.auditRecord.create({
+        data: {
+          checkId,
+          actorId,
+          action: 'CHECK_APPROVED',
+          payload,
+          prevHash,
+          hash,
+        },
+      });
+
+      return updated;
+    });
+  }
+
+  async reject(checkId: string, reason: string | undefined, actorId: string) {
+    return this.prisma.$transaction(async (tx: any) => {
+      const check = await tx.releaseCheck.findUnique({
+        where: { id: checkId },
+        select: { id: true, status: true },
+      });
+      if (!check) throw new NotFoundException('Release check not found');
+
+      if (check.status !== 'PENDING') {
+        throw new BadRequestException(`Check is already ${check.status}`);
+      }
+
+      const updated = await tx.releaseCheck.update({
+        where: { id: checkId },
+        data: {
+          status: 'REJECTED',
+          decidedAt: new Date(),
+          decidedById: actorId,
+          decisionReason: reason ?? null,
+        },
+      });
+
+      const payload = { status: 'REJECTED', reason: reason ?? null };
+      const { prevHash, hash } = await this.nextAuditHash(tx, checkId, payload);
+
+      await tx.auditRecord.create({
+        data: {
+          checkId,
+          actorId,
+          action: 'CHECK_REJECTED',
+          payload,
+          prevHash,
+          hash,
+        },
+      });
+
+      return updated;
+    });
+  }
+}

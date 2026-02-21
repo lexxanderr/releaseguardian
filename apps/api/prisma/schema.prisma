@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OFFICER
+  SUPERVISOR
+  AUDITOR
+}
+
+enum CheckStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum EvidenceType {
+  COURT_ORDER
+  LICENCE_STATUS
+  RECALL_STATUS
+  IMMIGRATION_HOLD
+  WARRANT_CHECK
+  SAFEGUARDING_CHECK
+  OTHER
+}
+
+// Keep for later if you want to migrate action -> enum via manual SQL
+enum AuditAction {
+  CHECK_CREATED
+  EVIDENCE_RECORDED
+  CHECK_APPROVED
+  CHECK_REJECTED
+  // EVIDENCE_DELETED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+
+  releaseChecks  ReleaseCheck[] @relation("UserReleaseChecks")
+  decidedChecks  ReleaseCheck[] @relation("UserCheckDecisions")
+  auditRecords   AuditRecord[]  @relation("UserAuditRecords")
+  evidenceItems  EvidenceItem[] @relation("UserEvidenceItems")
+
+  @@index([role])
+}
+
+model ReleaseCheck {
+  id                 String      @id @default(uuid())
+  reference          String      @db.VarChar(64)
+  scheduledReleaseAt DateTime
+  createdAt          DateTime    @default(now())
+
+  // Keep nullable to avoid migration failure with existing rows
+  updatedAt          DateTime?
+
+  // Decision / workflow
+  status             CheckStatus @default(PENDING)
+  decidedAt          DateTime?
+  decidedById        String?
+  decisionReason     String?     @db.VarChar(500)
+
+  createdById        String
+  createdBy          User        @relation("UserReleaseChecks", fields: [createdById], references: [id])
+
+  decidedBy          User?       @relation("UserCheckDecisions", fields: [decidedById], references: [id])
+
+  evidenceItems      EvidenceItem[]
+  auditRecords       AuditRecord[]
+
+  @@index([createdById])
+  @@index([scheduledReleaseAt])
+  @@index([createdAt])
+  @@index([status, createdAt])
+}
+
+model EvidenceItem {
+  id          String       @id @default(uuid())
+  checkId     String
+  type        EvidenceType
+  value       String       @db.Text
+  source      String?
+  createdAt   DateTime     @default(now())
+
+  createdById String
+  check       ReleaseCheck @relation(fields: [checkId], references: [id], onDelete: Cascade)
+  createdBy   User         @relation("UserEvidenceItems", fields: [createdById], references: [id])
+
+  @@index([checkId, createdAt])
+  @@index([createdById, createdAt])
+  @@index([type])
+}
+
+
+model AuditRecord {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  checkId   String
+  check     ReleaseCheck @relation(fields: [checkId], references: [id], onDelete: Cascade)
+
+  actorId   String
+  actor     User   @relation("UserAuditRecords", fields: [actorId], references: [id])
+
+  // Keep as String for now to avoid destructive enum migration
+  action    String
+  payload   Json
+
+  prevHash  String?
+  hash      String
+
+  @@index([checkId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+}

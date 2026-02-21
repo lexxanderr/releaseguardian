@@ -1,0 +1,46 @@
+import { useEffect, useState } from 'react';
+import { api } from './api';
+import type { ListChecksResponse, ReleaseCheck } from './types';
+
+export default function App() {
+  const [role] = useState<'OFFICER' | 'SUPERVISOR' | 'AUDITOR'>('SUPERVISOR');
+  const [checks, setChecks] = useState<ReleaseCheck[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    api<ListChecksResponse>('/checks?take=10', { role })
+      .then((res) => setChecks(res.items))
+      .catch((e) => setError(e.message));
+  }, [role]);
+
+  return (
+    <div style={{ padding: 24, fontFamily: 'system-ui, Arial' }}>
+      <h1 style={{ marginBottom: 6 }}>ReleaseGuardian</h1>
+      <div style={{ opacity: 0.8, marginBottom: 16 }}>Demo UI</div>
+
+      {error && (
+        <div style={{ padding: 12, border: '1px solid #ccc', borderRadius: 8, marginBottom: 16 }}>
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+
+      <div style={{ border: '1px solid #eee', borderRadius: 1      <div style={{ bord>
+      <div style={{ border: '1px solid #eeend      <div style={{ border:'1      <div style={{ border: '1px solid #eeend      <div style={che      <div style={{ border:
+
+                                                                                s                                                           e:                                                         p((                      <li key={c.id} style={{ padding: 12, borderBottom: '1px                                         le                                      space-between', gap: 12 }}>
+                  <div>
+                    <div style={{ fontWeight: 700 }}>{c.reference}</div>
+                    <div style={{ opacity: 0.7, fontSize: 13 }}>{c.id}</div>
+                  </div>
+                                                                                                                ta                                     tyle=       ity: 0.7       ize                                                                                     .auditRecords}
+                    </div>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
