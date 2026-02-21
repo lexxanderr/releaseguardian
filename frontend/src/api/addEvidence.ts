@@ -1,3 +1,6 @@
+// src/api/addEvidence.ts
+import { http } from './http';
+
 export type EvidenceType =
   | 'COURT_ORDER'
   | 'LICENCE_STATUS'
@@ -18,7 +21,7 @@ export async function addEvidence(
   body: AddEvidenceRequest,
   role: string,
 ) {
-  const res = await fetch(`/checks/${checkId}/evidence`, {
+  const res = await http(`/checks/${checkId}/evidence`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -32,5 +35,5 @@ export async function addEvidence(
     throw new Error(`${res.status}: ${text}`);
   }
 
-  return res.json();
+  return await res.json();
 }

@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { EvidencePanel } from './components/EvidencePanel';
 import { AddEvidenceForm } from './components/AddEvidenceForm';
 import './styles/checks-layout.css';
+import logo from './assets/logo.png';
+import { http } from './api/http';
 
 type Check = {
   id: string;
@@ -16,8 +18,10 @@ type Check = {
 };
 
 type ChecksResponse = {
-  items: Check[];
-  nextCursor: string | null;
+  items?: Check[];
+  checks?: Check[];
+  total?: number;
+  nextCursor?: string | null;
 };
 
 type AuditRecord = {
@@ -67,7 +71,6 @@ export default function App() {
   const [verifyOk, setVerifyOk] = useState<boolean | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
-  
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
@@ -78,22 +81,40 @@ export default function App() {
 
   // List
   useEffect(() => {
+    let alive = true;
+
     setLoading(true);
     setError(null);
 
-    fetch(`/checks?${query}`, { headers: { 'x-rg-role': role } })
+    http(`/checks?${query}`, { headers: { 'x-rg-role': role } })
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return (await res.json()) as ChecksResponse;
       })
-      .then((data) => setChecks(data.items))
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
-      .finally(() => setLoading(false));
+      .then((data) => {
+        if (!alive) return;
+        const list = data.items ?? data.checks ?? [];
+        setChecks(list);
+      })
+      .catch((e: unknown) => {
+        if (!alive) return;
+        setError(e instanceof Error ? e.message : String(e));
+      })
+      .finally(() => {
+        if (!alive) return;
+        setLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
   }, [query, role]);
 
-  // Details
+  // Details + Audit (single effect)
   useEffect(() => {
     if (!selectedId) return;
+
+    let alive = true;
 
     setDetail(null);
     setAudit([]);
@@ -104,12 +125,12 @@ export default function App() {
     const h = { 'x-rg-role': role };
 
     Promise.all([
-      fetch(`/checks/${selectedId}`, { headers: h }).then(async (r) => {
+      http(`/checks/${selectedId}`, { headers: h }).then(async (r) => {
         if (!r.ok) throw new Error(`Details HTTP ${r.status}`);
         return (await r.json()) as Check;
       }),
 
-      fetch(`/checks/${selectedId}/audit`, { headers: h }).then(async (r) => {
+      http(`/checks/${selectedId}/audit`, { headers: h }).then(async (r) => {
         if (!r.ok) throw new Error(`Audit HTTP ${r.status}`);
         const data: any = await r.json();
         const list = Array.isArray(data)
@@ -119,66 +140,40 @@ export default function App() {
       }),
     ])
       .then(([d, a]) => {
+        if (!alive) return;
         setDetail(d);
         setAudit(a);
         setVerifyOk(true);
       })
       .catch((e: unknown) => {
+        if (!alive) return;
         setDetailError(e instanceof Error ? e.message : String(e));
         setVerifyOk(false);
       })
-      .finally(() => setDetailLoading(false));
+      .finally(() => {
+        if (!alive) return;
+        setDetailLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
   }, [selectedId, role]);
 
-    // Details
-useEffect(() => {
-  if (!selectedId) return;
+  // Auto-scroll to details on mobile so you don't have to scroll down manually
+  useEffect(() => {
+    if (!selectedId) return;
 
-  setDetail(null);
-  setAudit([]);
-  setVerifyOk(null);
-  setDetailError(null);
-  setDetailLoading(true);
+    const isMobile = window.matchMedia('(max-width: 900px)').matches;
+    if (!isMobile) return;
 
-  const h = { 'x-rg-role': role };
-
-  Promise.all([
-    fetch(`/checks/${selectedId}`, { headers: h }).then(async (r) => {
-      if (!r.ok) throw new Error(`Details HTTP ${r.status}`);
-      return (await r.json()) as Check;
-    }),
-    fetch(`/checks/${selectedId}/audit`, { headers: h }).then(async (r) => {
-      if (!r.ok) throw new Error(`Audit HTTP ${r.status}`);
-      const data: any = await r.json();
-      return data.items ?? data ?? [];
-    }),
-  ])
-    .then(([d, a]) => {
-      setDetail(d);
-      setAudit(a);
-      setVerifyOk(true);
-    })
-    .catch((e) => {
-      setDetailError(e instanceof Error ? e.message : String(e));
-      setVerifyOk(false);
-    })
-    .finally(() => setDetailLoading(false));
-}, [selectedId, role]);
-
-// Auto-scroll to details on mobile so you don't have to scroll down manually
-useEffect(() => {
-  if (!selectedId) return;
-
-  const isMobile = window.matchMedia('(max-width: 900px)').matches;
-  if (!isMobile) return;
-
-  requestAnimationFrame(() => {
-    document.querySelector('.checks-panel')?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
+    requestAnimationFrame(() => {
+      document.querySelector('.checks-panel')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
     });
-  });
-}, [selectedId]);
+  }, [selectedId]);
 
   const selected = checks.find((c) => c.id === selectedId);
 
@@ -203,7 +198,7 @@ useEffect(() => {
       setDetailLoading(true);
       setDetailError(null);
 
-      const res = await fetch(`/checks/${selectedId}/${action}`, {
+      const res = await http(`/checks/${selectedId}/${action}`, {
         method: 'POST',
         headers: {
           'x-rg-role': role,
@@ -216,6 +211,7 @@ useEffect(() => {
         throw new Error(`${res.status}: ${text}`);
       }
 
+      // refresh list + clear selection (simple demo behavior)
       setSelectedId(null);
       setDetail(null);
       setAudit([]);
@@ -231,7 +227,7 @@ useEffect(() => {
     if (!selectedId) return;
 
     try {
-      const res = await fetch(`/checks/${selectedId}`, {
+      const res = await http(`/checks/${selectedId}`, {
         headers: { 'x-rg-role': role },
       });
       if (!res.ok) throw new Error(`Details HTTP ${res.status}`);
@@ -243,25 +239,20 @@ useEffect(() => {
   };
 
   return (
-  <div className="rg-shell">
-    <div className="rg-container">
-      {/* Header */}
-      <div className="page-header">
-        <div className="page-title">
-          <div className="rg-title">
-            <img
-              src="/src/assets/logo.png"
-              alt="ReleaseGuardian"
-              className="rg-logo"
-            />
-          </div>
-  
+    <div className="rg-shell">
+      <div className="rg-container">
+        {/* Header */}
+        <div className="page-header">
+          <div className="page-title">
+            <div className="rg-title">
+              <img src={logo} alt="ReleaseGuardian" className="rg-logo" />
+            </div>
 
-<div className="rg-title-text">
-  <h1>ReleaseGuardian</h1>
-  <span className="page-subtitle">Audit & Release Control</span>
-</div>
-</div>
+            <div className="rg-title-text">
+              <h1>ReleaseGuardian</h1>
+              <span className="page-subtitle">Audit & Release Control</span>
+            </div>
+          </div>
 
           <div className="page-controls">
             <div className="role-switch">
@@ -355,7 +346,9 @@ useEffect(() => {
                         title="Click to view details"
                       >
                         <td title={c.id}>
-                          <div style={{ fontWeight: 700 }}>{c.reference ?? `${c.id.slice(0, 8)}…`}</div>
+                          <div style={{ fontWeight: 700 }}>
+                            {c.reference ?? `${c.id.slice(0, 8)}…`}
+                          </div>
                           <div
                             style={{
                               marginTop: 2,
@@ -405,7 +398,6 @@ useEffect(() => {
           <div className="checks-panel">
             {selectedId ? (
               <div className="panel-card">
-                {/* Sticky on desktop, non-sticky on mobile via CSS */}
                 <div className="panel-header">
                   <strong>Check details</strong>
 
@@ -430,9 +422,7 @@ useEffect(() => {
                 </div>
 
                 {detailLoading && <p style={{ marginTop: 12 }}>Loading details…</p>}
-                {detailError && (
-                  <p style={{ color: 'red', marginTop: 12 }}>Error: {detailError}</p>
-                )}
+                {detailError && <p style={{ color: 'red', marginTop: 12 }}>Error: {detailError}</p>}
 
                 {!detailLoading && !detailError && detail && (
                   <>
