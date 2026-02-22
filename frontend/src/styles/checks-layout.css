@@ -1,7 +1,9 @@
 /* =========================================================
-   ReleaseGuardian — FINAL CSS v2
-   Desktop: internal panel scroll + pinned footer
-   Mobile: page scroll + stacked layout
+   ReleaseGuardian — CLEAN CSS (Single Source, Optimized)
+   - Desktop: internal panel scroll + pinned footer
+   - Mobile: normal page scroll + stacked layout
+   - Symmetry: header-right matches details panel width
+   - Evidence: collapse + focus (wider right panel)
    ========================================================= */
 
 /* ---------- Base ---------- */
@@ -11,17 +13,43 @@
   box-sizing: border-box;
 }
 
+:root {
+  --rg-font: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+
+  --rg-ink: #0b1220;
+  --rg-muted: #64748b;
+
+  --rg-stroke: rgba(148, 163, 184, 0.38);
+  --rg-stroke-strong: rgba(203, 213, 225, 0.82);
+
+  --rg-card: rgba(255, 255, 255, 0.78);
+  --rg-card-solid: #ffffff;
+
+  --rg-shadow: 0 18px 42px rgba(15, 23, 42, 0.10);
+  --rg-shadow-soft: 0 10px 26px rgba(15, 23, 42, 0.08);
+
+  --rg-radius: 18px;
+  --rg-radius-sm: 14px;
+
+  /* Default right column width (symmetry) */
+  --rg-right-col: 440px;
+
+  --rg-bg-top: #f6f9ff;
+  --rg-bg-bottom: #ffffff;
+}
+
 html,
 body {
   margin: 0;
-  background: #fff;
-  color: #0f172a;
-  overflow-x: hidden;
+  max-width: 100%;
+  overflow-x: hidden; /* iOS drift killer */
+  font-family: var(--rg-font);
+  color: var(--rg-ink);
+  background: linear-gradient(180deg, var(--rg-bg-top) 0%, var(--rg-bg-bottom) 55%, #ffffff 100%);
 }
 
 #root {
   min-height: 100vh;
-  background: #fff;
 }
 
 :where(button, select, a, input, textarea):focus-visible {
@@ -35,38 +63,52 @@ body {
    ========================================================= */
 .rg-shell {
   min-height: 100vh;
-  background: #fff;
 }
 
-/* Container becomes a full-height flex column (desktop) */
 .rg-container {
   width: 100%;
-  max-width: 1400px;
   margin: 0 auto;
   padding: 24px;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  max-width: none; /* full width */
 }
 
 /* =========================================================
-   Header (make it look less boring)
+   Header (desktop grid, mobile stack)
+   IMPORTANT: header must never become its own scroll container
    ========================================================= */
 .page-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
+  width: 100%;
+  overflow: visible;
+  height: auto;
 
   padding: 18px 18px 14px;
   margin-bottom: 16px;
 
-  background: linear-gradient(180deg, #f1f5f9 0%, #ffffff 100%);
-  border: 1px solid #cbd5e1;
-  border-radius: 14px;
-  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.06);
+  border-radius: var(--rg-radius);
+  border: 1px solid var(--rg-stroke);
+  box-shadow: var(--rg-shadow);
+  backdrop-filter: blur(10px);
+
+  background:
+    radial-gradient(1200px 240px at 18% 0%, rgba(59, 130, 246, 0.12), transparent 55%),
+    radial-gradient(900px 220px at 86% 10%, rgba(16, 185, 129, 0.10), transparent 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84) 0%, rgba(255, 255, 255, 0.62) 100%);
 }
-/* =========================================================
-   ReleaseGuardian logo (simple, enterprise)
-   ========================================================= */
+
+/* Prevent overflow in grid children */
+.page-header *,
+.rg-header * {
+  min-width: 0;
+}
+
+.rg-header {
+  display: grid;
+  grid-template-columns: auto minmax(740px, 1fr) var(--rg-right-col);
+  align-items: center;
+  gap: 18px;
+}
+
+/* Left: brand */
 .page-title {
   display: flex;
   align-items: center;
@@ -74,160 +116,321 @@ body {
 }
 
 .rg-logo {
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   object-fit: contain;
   flex-shrink: 0;
-}
 
-.rg-title-text h1 {
-  margin: 0;
-}
-
-.rg-title-text .page-subtitle {
-  margin-top: 4px;
+  border-radius: 14px;
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.10);
+  background: rgba(255, 255, 255, 0.65);
+  padding: 6px;
 }
 
 .page-title h1 {
   margin: 0;
-  font-size: 44px;
+  font-size: 40px;
   line-height: 1.05;
-  letter-spacing: -0.02em;
-  color: #0f172a;
+  letter-spacing: -0.03em;
+  font-weight: 850;
+  color: var(--rg-ink);
 }
 
 .page-subtitle {
   display: inline-block;
   margin-top: 6px;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--rg-muted);
 }
 
-.page-controls {
+/* Center: search card */
+.rg-header__center {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: center;
+  min-width: 0;
 }
 
-.role-switch label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+.rg-searchcard {
+  width: 100%;
+  max-width: 920px;
+  padding: 14px 16px;
+
+  border-radius: var(--rg-radius);
+  border: 1px solid rgba(226, 232, 240, 0.65);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: var(--rg-shadow-soft);
+}
+
+.rg-searchcard__title {
+  margin: 0 0 4px 0;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+  color: var(--rg-ink);
+  font-size: 15px;
+}
+
+.rg-searchcard__hint {
+  margin: 0 0 12px 0;
+  color: var(--rg-muted);
   font-size: 13px;
-  color: #374151;
+  font-weight: 500;
 }
 
-.role-switch select {
-  height: 34px;
-  padding: 0 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  background: #fff;
+.rg-searchrow {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  min-width: 0;
+}
+
+.rg-searchinput {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 44px;
+  padding: 0 14px;
+
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--rg-ink);
+}
+
+.rg-searchinput:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 4px rgba(147, 197, 253, 0.25);
+  outline: none;
+}
+
+/* Retrieve button */
+.rg-searchbtn {
+  height: 44px;
+  padding: 0 18px;
+
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  background: linear-gradient(180deg, #475569 0%, #334155 100%);
+  color: #ffffff;
+
+  font-weight: 850;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 14px 26px rgba(15, 23, 42, 0.18);
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+.rg-searchbtn:hover {
+  filter: brightness(0.98);
+  transform: translateY(-1px);
+}
+
+.rg-header-error {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+/* Right: filters + role */
+.rg-header__right {
+  width: var(--rg-right-col);
+  min-width: var(--rg-right-col);
+  max-width: var(--rg-right-col);
+
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+
+  padding: 16px 18px;
+  border-radius: var(--rg-radius);
+  border: 1px solid var(--rg-stroke-strong);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--rg-shadow-soft);
+  backdrop-filter: blur(10px);
+}
+
+.rg-filterstitle {
+  margin: 0 0 2px 0;
+  font-weight: 850;
+  font-size: 16px;
+  letter-spacing: -0.02em;
+  color: var(--rg-ink);
+}
+
+.rg-filtershint {
+  margin: 0 0 12px 0;
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--rg-muted);
+}
+
+/* Decorative accent dot (adds meaning, not borders) */
+.rg-filterstitle::before,
+.rg-searchcard__title::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.85), rgba(56, 189, 248, 0.85));
+  transform: translateY(-1px);
 }
 
 /* =========================================================
-   Filters
+   Filters (segmented on desktop)
    ========================================================= */
 .filters {
-  display: flex;
-  gap: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+
+  padding: 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(203, 213, 225, 0.95);
+  background: rgba(248, 250, 252, 0.85);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+
+  width: 100%;
+  justify-content: space-between;
 }
 
 .filter-btn {
-  height: 34px;
-  padding: 0 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  background: #fff;
+  height: 38px;
+  padding: 0 14px;
+
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+
   cursor: pointer;
   font-size: 13px;
-  font-weight: 700;
-  color: #111827;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+  color: var(--rg-ink);
+  white-space: nowrap;
+  flex: 1;
+}
+
+.filter-btn + .filter-btn {
+  border-left: 1px solid rgba(203, 213, 225, 0.95);
+  border-radius: 0;
 }
 
 .filter-btn:hover {
-  background: #f9fafb;
+  background: rgba(241, 245, 249, 0.65);
 }
 
 .filter-btn.active {
-  background: #eef2ff;
-  border-color: #c7d2fe;
+  background: rgba(224, 231, 255, 0.95);
   color: #1e3a8a;
+  box-shadow: inset 0 0 0 1px rgba(199, 210, 254, 0.9);
 }
 
 /* =========================================================
-   Main layout (base)
+   Role switch
+   ========================================================= */
+.role-switch {
+  margin-top: 2px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.role-switch label {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: center;
+  gap: 12px;
+
+  margin: 0;
+  font-size: 14px;
+  color: #334155;
+  font-weight: 650;
+}
+
+.role-switch select {
+  height: 42px;
+  padding: 0 14px;
+
+  border: 1px solid rgba(203, 213, 225, 0.95);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--rg-ink);
+  font-size: 14px;
+
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+}
+
+/* =========================================================
+   Main layout
    ========================================================= */
 .checks-layout {
   display: grid;
-  grid-template-columns: 1fr minmax(420px, 520px);
+  grid-template-columns: 1fr var(--rg-right-col);
   gap: 24px;
   align-items: stretch;
 }
 
-/* Left column */
 .checks-table {
   min-width: 0;
 }
 
-/* Right column */
 .checks-panel {
   min-width: 0;
-  border-left: 1px solid #eef2f7;
   padding-left: 24px;
   position: relative;
+  border-left: 1px solid rgba(226, 232, 240, 0.65);
 }
 
-/* Subtle divider glow */
 .checks-panel::before {
   content: "";
   position: absolute;
-  left: -12px;
+  left: -14px;
   top: 0;
   bottom: 0;
-  width: 24px;
+  width: 28px;
   pointer-events: none;
   background: linear-gradient(to right, rgba(15, 23, 42, 0.06), transparent);
 }
 
 /* =========================================================
-   Table surface + sticky header
+   Table (no vertical grid lines)
    ========================================================= */
 .table-shell {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: #fff;
+  border: 1px solid rgba(226, 232, 240, 0.75);
+  border-radius: var(--rg-radius);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: var(--rg-shadow-soft);
 
-  overflow: auto;     /* sticky thead works with overflow container */
-  min-height: 220px;  /* stops loading collapse */
+  overflow: auto;
+  min-height: 220px;
 }
 
 .table-shell table {
   width: 100%;
   table-layout: fixed;
-  border: none;
   border-collapse: collapse;
 }
 
 .table-shell th,
 .table-shell td {
-  border: none;
-  border-bottom: 1px solid #eef2f7;
+  border-left: none;
+  border-right: none;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.75);
   vertical-align: top;
 }
 
 .table-shell thead th {
-  background: #f9fafb;
+  background: rgba(248, 250, 252, 0.86);
   position: sticky;
   top: 0;
   z-index: 5;
-  box-shadow: 0 1px 0 #eef2f7, 0 10px 20px rgba(15, 23, 42, 0.04);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 0 rgba(226, 232, 240, 0.90);
 }
 
 .table-shell tbody tr:hover {
-  background: #f9fafb;
+  background: rgba(248, 250, 252, 0.75);
 }
 
 .table-shell tbody tr:last-child td {
@@ -240,13 +443,13 @@ body {
 
 .col-sub {
   font-size: 11px;
-  font-weight: 400;
+  font-weight: 500;
   color: #6b7280;
   margin-top: 2px;
 }
 
 .row-active {
-  background: #f5f5f5;
+  background: rgba(241, 245, 249, 0.7);
 }
 
 /* =========================================================
@@ -259,10 +462,9 @@ body {
   padding: 0 10px;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
+  font-weight: 850;
+  border: 1px solid rgba(203, 213, 225, 0.75);
+  background: rgba(248, 250, 252, 0.9);
   color: #111827;
 }
 
@@ -287,9 +489,7 @@ body {
 /* =========================================================
    Skeletons
    ========================================================= */
-.skel-row td {
-  padding: 10px 8px;
-}
+.skel-row td { padding: 10px 8px; }
 
 .skel {
   display: inline-block;
@@ -314,19 +514,21 @@ body {
 }
 
 /* =========================================================
-   Right panel card + sticky header (desktop)
+   Right panel card
    ========================================================= */
 .panel-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.75);
+  border-radius: var(--rg-radius);
   padding: 12px;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--rg-shadow-soft);
 }
 
 .panel-header {
   position: sticky;
   top: 0;
   z-index: 10;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -336,43 +538,167 @@ body {
   margin: -12px -12px 12px;
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(8px);
-  border-bottom: 1px solid #eef2f7;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
 }
 
 .panel-back {
   height: 34px;
   padding: 0 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  background: #f9fafb;
-  font-weight: 700;
+
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.9);
+  font-weight: 850;
   cursor: pointer;
 }
 
 .panel-back:hover {
-  background: #f3f4f6;
+  background: rgba(241, 245, 249, 0.9);
 }
 
 /* =========================================================
    Footer
-   - Desktop: pinned at bottom (always visible)
-   - Mobile: normal flow
    ========================================================= */
 .rg-footer {
   margin-top: 18px;
   padding-top: 12px;
-  border-top: 1px solid #eef2f7;
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
+
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+
   color: #6b7280;
   font-size: 13px;
 }
 
+.env-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(255, 255, 255, 0.75);
+  color: #64748b;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  font-size: 12px;
+}
+
 /* =========================================================
-   DESKTOP BEHAVIOUR: lock page scroll, scroll inside columns,
-   keep footer pinned.
+   Evidence: collapsible + focus
+   ========================================================= */
+.evidence-card {
+  margin-top: 14px;
+  border: 1px solid rgba(226, 232, 240, 0.75);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+  padding: 12px;
+}
+
+.evidence-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.evidence-card__title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.evidence-card__title strong {
+  font-size: 16px;
+  letter-spacing: -0.02em;
+}
+
+.evidence-card__count {
+  color: var(--rg-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.evidence-card__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.evidence-action-btn {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: rgba(248, 250, 252, 0.9);
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.evidence-action-btn:hover {
+  background: rgba(241, 245, 249, 0.95);
+}
+
+.evidence-card__body {
+  margin-top: 10px;
+  overflow: hidden;
+  transition: max-height 180ms ease, opacity 180ms ease;
+  max-height: 2000px;
+  opacity: 1;
+}
+
+.evidence-card.is-collapsed .evidence-card__body {
+  max-height: 0;
+  opacity: 0.35;
+  margin-top: 0;
+}
+
+/* Make evidence text wrap nicely */
+.evidence-card pre,
+.evidence-card code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* =========================================================
+   Focus mode: widen right panel + fade header context
+   ========================================================= */
+@media (min-width: 901px) {
+  body.rg-evidence-focus {
+    --rg-right-col: 620px;
+  }
+
+  /* Slightly tighten divider when focused */
+  body.rg-evidence-focus .checks-panel {
+    padding-left: 18px;
+  }
+
+  /* Fade out brand + search (keep filters readable) */
+  body.rg-evidence-focus .rg-header__left,
+  body.rg-evidence-focus .rg-header__center {
+    opacity: 0.22;
+    filter: blur(0.3px);
+    pointer-events: none; /* prevents accidental clicks */
+  }
+
+  /* Smooth layout transitions */
+  .checks-layout,
+  .rg-header {
+    transition: grid-template-columns 180ms ease;
+  }
+
+  .rg-header__left,
+  .rg-header__center {
+    transition: opacity 160ms ease, filter 160ms ease;
+  }
+}
+
+/* =========================================================
+   DESKTOP: lock page scroll, scroll inside columns, pinned footer
    ========================================================= */
 @media (min-width: 901px) {
   html,
@@ -382,7 +708,7 @@ body {
   }
 
   body {
-    overflow: hidden; /* IMPORTANT: no page scroll on desktop */
+    overflow: hidden;
   }
 
   .rg-shell {
@@ -390,23 +716,18 @@ body {
   }
 
   .rg-container {
-    height: 100vh;              /* full viewport */
+    height: 100vh;
     display: flex;
-    flex-direction: column;     /* header -> layout -> footer */
-    padding-bottom: 16px;
-
-/* STEP 2: iOS micro-drift fix */
- 
-
+    flex-direction: column;
+    padding: 24px 32px 16px;
   }
 
   .checks-layout {
-    flex: 1;        /* take remaining height */
-    min-height: 0;  /* CRITICAL: allows children to scroll */
+    flex: 1;
+    min-height: 0;
     overflow: hidden;
   }
 
-  /* Make BOTH columns real scroll containers */
   .checks-table,
   .checks-panel {
     min-height: 0;
@@ -414,26 +735,93 @@ body {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Footer pinned at bottom of viewport (not mobile) */
   .rg-footer {
     margin-top: 0;
     flex-shrink: 0;
     position: sticky;
     bottom: 0;
-    background: #fff;
+    background: transparent;
     padding-bottom: 10px;
   }
 }
 
 /* =========================================================
-   MOBILE: stack + normal page scroll (no freeze)
-   ========================================================= */
-/* =========================================================
-   MOBILE: stack + normal page scroll (no freeze)
-   (CLEANED: removes duplicated/nested @media that causes drift)
+   MOBILE: stacked layout + normal page scroll
    ========================================================= */
 @media (max-width: 900px) {
-  /* Stack panels */
+  .rg-container {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+
+  .rg-header {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .rg-header__center {
+    justify-content: stretch;
+  }
+
+  .rg-header__right {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  /* Search row stacks */
+  .rg-searchrow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rg-searchbtn {
+    width: 100%;
+    height: 52px; /* nicer on mobile */
+    font-size: 18px;
+  }
+
+  /* Filters as 2x2 grid on mobile */
+  .filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .filter-btn {
+    width: 100%;
+    height: 44px;
+    border-radius: 14px;
+    font-size: 14px;
+    padding: 0 12px;
+    border: 1px solid rgba(203, 213, 225, 0.95);
+    background: rgba(255, 255, 255, 0.95);
+  }
+
+  .filter-btn + .filter-btn {
+    border-left: none;
+    border-radius: 14px;
+  }
+
+  .filter-btn.active {
+    background: rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.25);
+  }
+
+  /* iOS: avoid zoom on select */
+  .role-switch select {
+    font-size: 16px;
+  }
+
   .checks-layout {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -442,27 +830,29 @@ body {
   .checks-panel {
     border-left: none;
     padding-left: 0;
-    border-top: 1px solid #eef2f7;
+    border-top: 1px solid rgba(226, 232, 240, 0.85);
     padding-top: 16px;
   }
 
-  /* Avoid nested scroll traps on mobile */
+  .checks-panel::before {
+    display: none;
+  }
+
   .checks-table,
   .checks-panel {
     overflow: visible;
   }
 
-  /* Table can scroll horizontally if needed */
   .table-shell {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
 
   .table-shell table {
-    min-width: 560px; /* keep your existing behaviour */
+    min-width: 560px;
   }
 
-  /* Details header should NOT be sticky on mobile */
+  /* Details header not sticky on mobile */
   .panel-header {
     position: static;
     margin: 0 0 10px 0;
@@ -472,255 +862,43 @@ body {
     border-bottom: none;
   }
 }
+
+/* Extra small phones: reduce title */
 @media (max-width: 520px) {
-  .rg-container {
-    padding: 16px;
-  }
-
-  .page-header {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 12px;
-  }
-
   .page-title h1 {
     font-size: 34px;
     line-height: 1.08;
-  }
-
-  .page-controls {
-    width: 100%;
-    overflow-x: auto;
-    padding-bottom: 6px;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .filters {
-    flex-wrap: nowrap;
-    white-space: nowrap;
-  }
-
-  .filter-btn {
-    flex: 0 0 auto;
-    min-height: 44px;
-    padding: 0 14px;
-    border-radius: 12px;
-  }
-
-  .role-switch select,
-  .panel-back {
-    min-height: 44px;
-  }
-}
-/* =========================================================
-   iPHONE FIX: stop tiny horizontal overflow (causes right drift)
-   + Optional: make header section vertically scrollable on mobile
-   ========================================================= */
-
-/* 1) Hard-kill horizontal overflow at the top level (safe) */
-@media (max-width: 900px) {
-  html,
-  body,
-  #root,
-  .rg-shell {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden; /* key: prevents the drift */
-  }
-
-  /* 2) Ensure container is mathematically centered + equal padding */
-  .rg-container {
-    width: 100%;
-    max-width: 100%;
-    margin: 0 auto;
-
-    /* balanced padding (safe-area aware) */
-    padding-left: max(16px, env(safe-area-inset-left));
-    padding-right: max(16px, env(safe-area-inset-right));
-  }
-
-  /* 3) Force the header card to be full-width (prevents any nudge) */
-  .page-header {
-    width: 100%;
-    max-width: 100%;
-    margin-left: 0;
-    margin-right: 0;
-  }
-}
-
-/* OPTIONAL: make the HEADER CARD scroll vertically on small screens */
-@media (max-width: 520px) {
-  .page-header {
-    max-height: 60vh;                 /* adjust if you want */
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 }
 
 /* =========================================================
-   MOBILE: filter row alignment polish
+   Evidence focus — fade header brand/search on DESKTOP
    ========================================================= */
-@media (max-width: 520px) {
-  .filters {
-    width: 100%;
-    justify-content: center;   /* keeps pills centered */
-    overflow-x: auto;          /* allows scroll instead of clipping */
-    -webkit-overflow-scrolling: touch;
-    padding: 4px 2px 6px;
-    gap: 10px;
+@media (min-width: 901px) {
+  /* Fade the whole left+center area when focusing evidence */
+  body.rg-evidence-focus .rg-header__left,
+  body.rg-evidence-focus .rg-header__center {
+    opacity: 0.18;
+    filter: blur(0.4px);
+    transform: translateY(-1px);
+    transition: opacity 180ms ease, filter 180ms ease, transform 180ms ease;
+    pointer-events: none; /* prevent clicks while faded */
   }
 
-  .filter-btn {
-    flex: 0 0 auto;            /* prevents squishing/cropping */
-  }
-}/* =========================================================
-   MOBILE: wrapped filters (no horizontal scroll)
-   ========================================================= */
-@media (max-width: 520px) {
-  .filters {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    flex-wrap: wrap;           /* wrap to next line when needed */
-    gap: 10px 12px;            /* vertical | horizontal spacing */
-    row-gap: 8px; 
-    padding-top: 6px;
-  }
-
-  .filter-btn {
-    flex: 0 0 auto;            /* never stretch or crop */
-    min-width: 72px;          /* keeps buttons visually balanced */
-    text-align: center;
+  /* Keep right controls fully visible */
+  body.rg-evidence-focus .rg-header__right {
+    opacity: 1;
+    filter: none;
+    transform: none;
+    pointer-events: auto;
   }
 }
 
-/* =========================================================
-   MOBILE HEADER FLOW FIX (left-aligned, cleaner rhythm)
-   Paste at bottom of file
-   ========================================================= */
-@media (max-width: 520px) {
-  /* Make the header read top-to-bottom (no left-right-center zigzag) */
-  .page-header {
-    align-items: flex-start;
-    text-align: left;
-    gap: 14px;
-  }
-
-  /* Put "Demo role" in the same left column flow */
-  .page-controls {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  /* Filters should align with the content column, not float center */
-  .filters {
-    justify-content: flex-start;
-  }
-}
-
-/* =========================================================
-   FINAL MOBILE FILTERS (<=520px): ALWAYS 1 LINE
-   Overrides earlier duplicate rules
-   ========================================================= */
-@media (max-width: 520px) {
-  /* Keep header flow clean */
-  .page-header {
-    align-items: flex-start;
-    text-align: left;
-  }
-
-  .page-controls {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  /* Force filters into 4 equal buttons on one row */
-  .filters {
-    width: 100%;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    padding-top: 6px;
-
-    /* kill old scroll/wrap behaviours */
-    overflow: visible;
-    white-space: normal;
-  }
-
-  .filter-btn {
-    width: 100%;
-    min-width: 0;        /* IMPORTANT: allow shrinking */
-    height: 38px;
-    padding: 0 8px;
-    font-size: 12px;
-    border-radius: 10px;
-    text-align: center;
-    white-space: nowrap; /* keep label on one line */
-  }
-}
-
-/* =========================================================
-   MOBILE (<=520): ensure Role switch is always visible
-   ========================================================= */
-@media (max-width: 520px) {
-  .page-controls {
-    overflow: visible;        /* stop hiding items off-screen */
-    flex-wrap: wrap;          /* allow role + filters to wrap */
-    justify-content: flex-start;
-    gap: 10px;
-  }
-
-  .role-switch {
-    width: 100%;
-  }
-
-  .role-switch label {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .role-switch select {
-    width: 100%;
-    height: 40px;
-  }
-}
-/* =========================================================
-   iOS SAFARI: make <select> value visible on mobile
-   ========================================================= */
-@media (max-width: 520px) {
-  .role-switch select {
-    appearance: none;
-    -webkit-appearance: none;
-
-    background-color: #ffffff;
-    color: #0f172a;
-
-    border: 1px solid #d1d5db;
-    border-radius: 12px;
-
-    height: 44px;
-    padding: 0 40px 0 12px; /* space for arrow */
-    line-height: 44px;
-    font-size: 16px;        /* prevents iOS zoom + improves legibility */
-
-    box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
-  }
-
-  /* Add a dropdown arrow so it doesn't look empty */
-  .role-switch {
-    position: relative;
-  }
-
-  .role-switch::after {
-    content: "▾";
-    position: absolute;
-    right: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #6b7280;
-    pointer-events: none;
-    font-size: 14px;
-  }
+/* Make sure normal state transitions feel smooth too */
+.rg-header__left,
+.rg-header__center,
+.rg-header__right {
+  transition: opacity 180ms ease, filter 180ms ease, transform 180ms ease;
 }

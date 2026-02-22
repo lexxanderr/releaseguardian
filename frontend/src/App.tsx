@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { EvidencePanel } from './components/EvidencePanel';
 import { AddEvidenceForm } from './components/AddEvidenceForm';
 import './styles/checks-layout.css';
+import './styles/mobile-fixes.css';
 import logo from './assets/logo.png';
 import { http } from './api/http';
 
@@ -57,20 +58,37 @@ function EmptyPanel() {
 
 export default function App() {
   const [role, setRole] = useState<Role>('SUPERVISOR');
-  const [evidenceRefreshKey, setEvidenceRefreshKey] = useState(0);
-
   const [status, setStatus] = useState<StatusFilter>('ALL');
 
   const [checks, setChecks] = useState<Check[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
+  // Split list errors vs search errors (keeps UX clean)
+  const [listError, setListError] = useState<string | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  const [searchId, setSearchId] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
   const [detail, setDetail] = useState<Check | null>(null);
   const [audit, setAudit] = useState<AuditRecord[]>([]);
   const [verifyOk, setVerifyOk] = useState<boolean | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+
+  const [evidenceRefreshKey, setEvidenceRefreshKey] = useState(0);
+
+  // NEW: Evidence UI controls
+  const [evidenceCollapsed, setEvidenceCollapsed] = useState(false);
+  const [evidenceFocus, setEvidenceFocus] = useState(false);
+
+  // Apply focus mode to body (CSS widens right column)
+  useEffect(() => {
+    document.body.classList.toggle('rg-evidence-focus', evidenceFocus);
+    return () => {
+      document.body.classList.remove('rg-evidence-focus');
+    };
+  }, [evidenceFocus]);
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
@@ -79,12 +97,46 @@ export default function App() {
     return params.toString();
   }, [status]);
 
+  const handleSearch = () => {
+    const raw = searchId.trim();
+    if (!raw) {
+      setSearchError('Enter Prisoner / Case ID');
+      return;
+    }
+
+    setSearchError(null);
+    setDetailError(null);
+
+    const needle = raw.toLowerCase();
+    const getIdStr = (c: any) => String(c?.id ?? '').toLowerCase();
+    const getRefStr = (c: any) => String(c?.reference ?? '').toLowerCase();
+
+    // Exact match by reference OR id
+    let match =
+      checks.find((c: any) => getRefStr(c) === needle) ??
+      checks.find((c: any) => getIdStr(c) === needle);
+
+    // Partial match (demo friendly)
+    if (!match) {
+      match =
+        checks.find((c: any) => getRefStr(c).includes(needle)) ??
+        checks.find((c: any) => getIdStr(c).includes(needle));
+    }
+
+    if (match) {
+      setSelectedId(match.id);
+      return;
+    }
+
+    setSearchError(`No release checks found for: ${raw}`);
+  };
+
   // List
   useEffect(() => {
     let alive = true;
 
     setLoading(true);
-    setError(null);
+    setListError(null);
 
     http(`/checks?${query}`, { headers: { 'x-rg-role': role } })
       .then(async (res) => {
@@ -98,7 +150,7 @@ export default function App() {
       })
       .catch((e: unknown) => {
         if (!alive) return;
-        setError(e instanceof Error ? e.message : String(e));
+        setListError(e instanceof Error ? e.message : String(e));
       })
       .finally(() => {
         if (!alive) return;
@@ -110,7 +162,7 @@ export default function App() {
     };
   }, [query, role]);
 
-  // Details + Audit (single effect)
+  // Details + Audit
   useEffect(() => {
     if (!selectedId) return;
 
@@ -122,6 +174,10 @@ export default function App() {
     setDetailError(null);
     setDetailLoading(true);
 
+    // When you open a new check, reset evidence UI
+    setEvidenceCollapsed(false);
+    setEvidenceFocus(false);
+
     const h = { 'x-rg-role': role };
 
     Promise.all([
@@ -129,13 +185,10 @@ export default function App() {
         if (!r.ok) throw new Error(`Details HTTP ${r.status}`);
         return (await r.json()) as Check;
       }),
-
       http(`/checks/${selectedId}/audit`, { headers: h }).then(async (r) => {
         if (!r.ok) throw new Error(`Audit HTTP ${r.status}`);
         const data: any = await r.json();
-        const list = Array.isArray(data)
-          ? data
-          : data.items ?? data.records ?? data.auditRecords ?? [];
+        const list = Array.isArray(data) ? data : data.items ?? data.records ?? data.auditRecords ?? [];
         return list as AuditRecord[];
       }),
     ])
@@ -160,7 +213,7 @@ export default function App() {
     };
   }, [selectedId, role]);
 
-  // Auto-scroll to details on mobile so you don't have to scroll down manually
+  // Auto-scroll to details on mobile
   useEffect(() => {
     if (!selectedId) return;
 
@@ -177,7 +230,6 @@ export default function App() {
 
   const selected = checks.find((c) => c.id === selectedId);
 
-  // --- strict decision rules ---
   const evidenceCount =
     detail && detail._count && typeof detail._count.evidenceItems === 'number'
       ? detail._count.evidenceItems
@@ -188,8 +240,7 @@ export default function App() {
     evidenceCount > 0 &&
     (role === 'SUPERVISOR' || role === 'AUDITOR');
 
-  const canReject =
-    detail?.status === 'PENDING' && (role === 'SUPERVISOR' || role === 'AUDITOR');
+  const canReject = detail?.status === 'PENDING' && (role === 'SUPERVISOR' || role === 'AUDITOR');
 
   const decide = async (action: 'approve' | 'reject') => {
     if (!selectedId) return;
@@ -211,7 +262,6 @@ export default function App() {
         throw new Error(`${res.status}: ${text}`);
       }
 
-      // refresh list + clear selection (simple demo behavior)
       setSelectedId(null);
       setDetail(null);
       setAudit([]);
@@ -242,22 +292,83 @@ export default function App() {
     <div className="rg-shell">
       <div className="rg-container">
         {/* Header */}
-        <div className="page-header">
-          <div className="page-title">
-            <div className="rg-title">
-              <img src={logo} alt="ReleaseGuardian" className="rg-logo" />
-            </div>
+        <div className="page-header rg-header">
+          {/* LEFT: Brand */}
+          <div className="rg-header__left">
+            <div className="page-title">
+              <div className="rg-title">
+                <img src={logo} alt="ReleaseGuardian" className="rg-logo" />
+              </div>
 
-            <div className="rg-title-text">
-              <h1>ReleaseGuardian</h1>
-              <span className="page-subtitle">Audit & Release Control</span>
+              <div className="rg-title-text">
+                <h1>ReleaseGuardian</h1>
+                <span className="page-subtitle">Audit &amp; Release Control</span>
+              </div>
             </div>
           </div>
 
-          <div className="page-controls">
-            <div className="role-switch">
+          {/* CENTER: Search */}
+          <div className="rg-header__center">
+            <form
+              className="rg-searchcard"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSearch();
+              }}
+            >
+              <div className="rg-searchcard__top">
+                <div className="rg-searchcard__title">Start new search</div>
+                <div className="rg-searchcard__hint">Jump straight to a case or evidence ID</div>
+              </div>
+
+              <div className="rg-searchrow">
+                <input
+                  className="rg-searchinput"
+                  placeholder="Enter Prisoner / Case ID"
+                  value={searchId}
+                  onChange={(e) => setSearchId(e.target.value)}
+                />
+                <button className="rg-searchbtn" type="submit">
+                  Retrieve
+                </button>
+              </div>
+
+              {searchError && <div className="rg-header-error">Error: {searchError}</div>}
+            </form>
+          </div>
+
+          {/* RIGHT: Filters + Role */}
+          <div className="rg-header__right">
+            <div className="rg-filtersblock">
+              <div className="rg-filtersmeta">
+                <div className="rg-filterstitle">Release status</div>
+                <div className="rg-filtershint">Filter cases by decision state</div>
+              </div>
+
+              <div className="filters rg-filters">
+                {STATUSES.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className={`filter-btn ${status === s ? 'active' : ''}`}
+                    onClick={() => {
+                      setStatus(s);
+                      setSelectedId(null);
+                      setDetail(null);
+                      setDetailError(null);
+                      setAudit([]);
+                      setSearchError(null);
+                    }}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="role-switch rg-rolepill">
               <label>
-                Demo role:{' '}
+                Demo role:
                 <select value={role} onChange={(e) => setRole(e.target.value as Role)}>
                   {ROLES.map((r) => (
                     <option key={r} value={r}>
@@ -267,25 +378,6 @@ export default function App() {
                 </select>
               </label>
             </div>
-
-            <div className="filters">
-              {STATUSES.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => {
-                    setStatus(s);
-                    setSelectedId(null);
-                    setDetailError(null);
-                    setDetail(null);
-                    setAudit([]);
-                  }}
-                  className={`filter-btn ${status === s ? 'active' : ''}`}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
           </div>
         </div>
 
@@ -293,10 +385,10 @@ export default function App() {
         <div className="checks-layout">
           {/* LIST */}
           <div className="checks-table">
-            {error && <p style={{ color: 'red' }}>Error: {error}</p>}
+            {listError && <p style={{ color: 'red' }}>Error: {listError}</p>}
 
             <div className="table-shell">
-              <table border={1} cellPadding={8} cellSpacing={0}>
+              <table cellPadding={8} cellSpacing={0}>
                 <thead>
                   <tr>
                     <th align="left" className="col-id">
@@ -346,9 +438,7 @@ export default function App() {
                         title="Click to view details"
                       >
                         <td title={c.id}>
-                          <div style={{ fontWeight: 700 }}>
-                            {c.reference ?? `${c.id.slice(0, 8)}…`}
-                          </div>
+                          <div style={{ fontWeight: 800 }}>{c.reference ?? `${c.id.slice(0, 8)}…`}</div>
                           <div
                             style={{
                               marginTop: 2,
@@ -372,7 +462,7 @@ export default function App() {
                             const d = new Date(c.createdAt);
                             return (
                               <div style={{ lineHeight: 1.25 }}>
-                                <div style={{ fontWeight: 700 }}>{d.toLocaleDateString()}</div>
+                                <div style={{ fontWeight: 800 }}>{d.toLocaleDateString()}</div>
                                 <div
                                   style={{
                                     fontSize: 12,
@@ -447,19 +537,54 @@ export default function App() {
                         <b>Decision reason:</b> {detail.decisionReason ?? '—'}
                       </div>
 
-                      <AddEvidenceForm
-                        checkId={selectedId}
-                        role={role}
-                        checkStatus={detail.status}
-                        onAdded={() => {
-                          setEvidenceRefreshKey((k) => k + 1);
-                          refreshSelectedDetail();
-                        }}
-                      />
+                      {/* Evidence (collapsible + focus) */}
+                      <div className={`evidence-card ${evidenceCollapsed ? 'is-collapsed' : ''}`}>
+                        <div className="evidence-card__header">
+                          <div className="evidence-card__title">
+                            <strong>Evidence</strong>
+                            <span className="evidence-card__count">{evidenceCount} item(s)</span>
+                          </div>
 
-                      <EvidencePanel checkId={selectedId} role={role} refreshKey={evidenceRefreshKey} />
+                          <div className="evidence-card__actions">
+                            <button
+                              type="button"
+                              className="evidence-action-btn"
+                              onClick={() => setEvidenceCollapsed((v) => !v)}
+                            >
+                              {evidenceCollapsed ? 'Expand' : 'Collapse'}
+                            </button>
 
-                      <div>
+                            <button
+                              type="button"
+                              className="evidence-action-btn"
+                              onClick={() => setEvidenceFocus((v) => !v)}
+                              title="Widen the right panel for evidence review"
+                            >
+                              {evidenceFocus ? 'Unfocus' : 'Focus'}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="evidence-card__body">
+                          <AddEvidenceForm
+                            checkId={selectedId}
+                            role={role}
+                            checkStatus={detail.status}
+                            onAdded={() => {
+                              setEvidenceRefreshKey((k) => k + 1);
+                              refreshSelectedDetail();
+                            }}
+                          />
+
+                          <EvidencePanel
+                            checkId={selectedId}
+                            role={role}
+                            refreshKey={evidenceRefreshKey}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: 12 }}>
                         <b>Evidence items:</b> {detail._count?.evidenceItems ?? '—'}
                       </div>
                       <div>
@@ -478,6 +603,7 @@ export default function App() {
                           color: 'white',
                           border: 'none',
                           borderRadius: 8,
+                          fontWeight: 800,
                         }}
                         title={canApprove ? 'Approve' : 'Add evidence first'}
                       >
@@ -494,6 +620,7 @@ export default function App() {
                           color: 'white',
                           border: 'none',
                           borderRadius: 8,
+                          fontWeight: 800,
                         }}
                       >
                         Reject
@@ -519,7 +646,11 @@ export default function App() {
                         <ul style={{ paddingLeft: 18 }}>
                           {audit.map((a) => (
                             <li key={a.id}>
-                              <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>
+                              <span
+                                style={{
+                                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                                }}
+                              >
                                 {new Date(a.createdAt).toLocaleString()}
                               </span>{' '}
                               — {a.action}

@@ -5,18 +5,24 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // ✅ CORS — allow frontend dev servers (5173, 5174, 5175, etc.)
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'https://releaseguardian.vercel.app',
+  ];
+
   app.enableCors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
-  credentials: false,
-  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'x-rg-role'],
-});
+    origin: (origin, cb) => {
+      // allow curl / Postman / server-to-server
+      if (!origin) return cb(null, true);
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(new Error(`CORS blocked for origin: ${origin}`), false);
+    },
+    credentials: false,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'x-rg-role'],
+  });
 
-
-
-
-  // Swagger
   const config = new DocumentBuilder()
     .setTitle('ReleaseGuardian API')
     .setDescription(
@@ -32,7 +38,10 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 
-  await app.listen(3000);
+  const port = Number(process.env.PORT) || 3000;
+  await app.listen(port, '0.0.0.0');
+
+  console.log(`ReleaseGuardian API listening on http://0.0.0.0:${port}`);
 }
 
 bootstrap();

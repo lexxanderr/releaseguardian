@@ -1,0 +1,115 @@
+/* =========================================================
+   ReleaseGuardian — Mobile-only fixes
+   Safe: affects ONLY <= 900px (desktop unchanged)
+   ========================================================= */
+
+@media (max-width: 900px) {
+  /* prevent iOS “drift” */
+  html,
+  body,
+  #root {
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  .rg-container {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-top: 16px;
+  }
+
+  /* ---------- Header: stack cleanly ---------- */
+  .page-header.rg-header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .rg-header__left,
+  .rg-header__center,
+  .rg-header__right {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* put search above controls on mobile */
+  .rg-header__center {
+    order: 2 !important;
+  }
+
+  .rg-header__right {
+    order: 3 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    align-items: stretch !important;
+  }
+
+  /* ---------- Search card ---------- */
+  .rg-searchcard {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .rg-searchrow {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  .rg-searchinput,
+  .rg-searchbtn {
+    width: 100% !important;
+  }
+
+  /* ---------- Role select (fix “blank” look on iOS) ---------- */
+  .role-switch label {
+    display: grid !important;
+    grid-template-columns: 110px 1fr !important;
+    gap: 10px !important;
+    align-items: center !important;
+  }
+
+  .role-switch select {
+    width: 100% !important;
+    min-height: 44px !important;
+    font-size: 16px !important; /* prevents iOS zoom + makes value readable */
+    color: #0f172a !important;
+    background: #ffffff !important;
+  }
+
+  /* ---------- Filters: 2x2 grid ---------- */
+  .filters {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+
+  .filter-btn {
+    width: 100% !important;
+    min-height: 44px !important;
+    white-space: nowrap !important;
+  }
+
+  /* ---------- Table alignment on mobile ---------- */
+  .table-shell {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Instead of squishing columns (causes weird misalignment),
+     force horizontal scroll with a stable min-width. */
+  .table-shell table {
+    table-layout: auto !important;
+    min-width: 720px !important;
+  }
+
+  .col-id,
+  .col-status,
+  .col-created {
+    width: auto !important;
+  }
+}
