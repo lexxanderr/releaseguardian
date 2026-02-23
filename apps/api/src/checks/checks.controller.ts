@@ -26,12 +26,12 @@ export class ChecksController {
   constructor(private readonly checks: ChecksService) {}
 
   @ApiOperation({ summary: 'Create a release check' })
+ 
   @Post()
-  async create(@Body() dto: CreateCheckDto) {
-    const actorId = process.env.DEV_ACTOR_ID;
-    if (!actorId) throw new Error('DEV_ACTOR_ID missing in .env (dev-only)');
-    return this.checks.create(dto, actorId);
-  }
+async create(@Body() dto: CreateCheckDto) {
+  const actorId = process.env.DEV_ACTOR_ID ?? 'demo-actor';
+  return this.checks.create(dto, actorId);
+}
 
   @ApiOperation({ summary: 'Add evidence to a check' })
   @Post(':id/evidence')

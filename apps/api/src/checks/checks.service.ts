@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
@@ -11,6 +12,8 @@ import { CreateCheckDto } from './dto/create-check.dto';
 
 @Injectable()
 export class ChecksService {
+  private readonly logger = new Logger(ChecksService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   private sha256(input: string) {
@@ -38,160 +41,187 @@ export class ChecksService {
   }
 
   async create(dto: CreateCheckDto, actorId: string) {
-    return this.prisma.$transaction(async (tx: any) => {
-      const check = await tx.releaseCheck.create({
-        data: {
-          reference: dto.reference,
-          scheduledReleaseAt: new Date(dto.scheduledReleaseAt),
-          createdById: actorId,
-        },
+    try {
+      return await this.prisma.$transaction(async (tx: any) => {
+        const check = await tx.releaseCheck.create({
+          data: {
+            reference: dto.reference,
+            scheduledReleaseAt: new Date(dto.scheduledReleaseAt),
+            createdById: actorId,
+          },
+        });
+
+        const payload = {
+          reference: check.reference,
+          scheduledReleaseAt: check.scheduledReleaseAt.toISOString(),
+        };
+
+        const { prevHash, hash } = await this.nextAuditHash(tx, check.id, payload);
+
+        await tx.auditRecord.create({
+          data: {
+            checkId: check.id,
+            actorId,
+            action: 'CHECK_CREATED',
+            payload,
+            prevHash,
+            hash,
+          },
+        });
+
+        return check;
       });
-
-      const payload = {
-        reference: check.reference,
-        scheduledReleaseAt: check.scheduledReleaseAt.toISOString(),
-      };
-
-      const { prevHash, hash } = await this.nextAuditHash(tx, check.id, payload);
-
-      await tx.auditRecord.create({
-        data: {
-          checkId: check.id,
-          actorId,
-          action: 'CHECK_CREATED',
-          payload,
-          prevHash,
-          hash,
-        },
-      });
-
-      return check;
-    });
+    } catch (err: any) {
+      this.logger.error('Error creating release check', err?.stack || err);
+      console.error(err);
+      throw err;
+    }
   }
 
   async addEvidence(checkId: string, dto: AddEvidenceDto, actorId: string) {
-    return this.prisma.$transaction(async (tx: any) => {
-      const check = await tx.releaseCheck.findUnique({ where: { id: checkId } });
-      if (!check) throw new NotFoundException('Release check not found');
+    try {
+      return await this.prisma.$transaction(async (tx: any) => {
+        const check = await tx.releaseCheck.findUnique({ where: { id: checkId } });
+        if (!check) throw new NotFoundException('Release check not found');
 
-      const evidence = await tx.evidenceItem.create({
-        data: {
-          checkId,
-          type: dto.type,
-          value: dto.value,
-          source: dto.source ?? null,
-          createdById: actorId,
-        },
+        const evidence = await tx.evidenceItem.create({
+          data: {
+            checkId,
+            type: dto.type,
+            value: dto.value,
+            source: dto.source ?? null,
+            createdById: actorId,
+          },
+        });
+
+        const payload = {
+          evidenceId: evidence.id,
+          type: evidence.type,
+          source: evidence.source ?? null,
+        };
+
+        const { prevHash, hash } = await this.nextAuditHash(tx, checkId, payload);
+
+        await tx.auditRecord.create({
+          data: {
+            checkId,
+            actorId,
+            action: 'EVIDENCE_RECORDED',
+            payload,
+            prevHash,
+            hash,
+          },
+        });
+
+        return evidence;
       });
-
-      const payload = {
-        evidenceId: evidence.id,
-        type: evidence.type,
-        source: evidence.source ?? null,
-      };
-
-      const { prevHash, hash } = await this.nextAuditHash(tx, checkId, payload);
-
-      await tx.auditRecord.create({
-        data: {
-          checkId,
-          actorId,
-          action: 'EVIDENCE_RECORDED',
-          payload,
-          prevHash,
-          hash,
-        },
-      });
-
-      return evidence;
-    });
+    } catch (err: any) {
+      this.logger.error(
+        `Error adding evidence (checkId=${checkId})`,
+        err?.stack || err,
+      );
+      console.error(err);
+      throw err;
+    }
   }
 
   // B1) Approve a check
   async approve(checkId: string, actorId: string) {
-    return this.prisma.$transaction(async (tx: any) => {
-      const check = await tx.releaseCheck.findUnique({
-        where: { id: checkId },
-        select: { id: true, status: true },
+    try {
+      return await this.prisma.$transaction(async (tx: any) => {
+        const check = await tx.releaseCheck.findUnique({
+          where: { id: checkId },
+          select: { id: true, status: true },
+        });
+        if (!check) throw new NotFoundException('Release check not found');
+
+        if (check.status !== 'PENDING') {
+          throw new ConflictException('Check is already ' + check.status);
+        }
+
+        const evidenceCount = await tx.evidenceItem.count({ where: { checkId } });
+        if (evidenceCount < 1) {
+          throw new BadRequestException('Cannot approve a check with no evidence');
+        }
+
+        const updated = await tx.releaseCheck.update({
+          where: { id: checkId },
+          data: {
+            status: 'APPROVED',
+            decidedAt: new Date(),
+            decidedById: actorId,
+            decisionReason: null,
+          },
+        });
+
+        const payload = { status: 'APPROVED', evidenceCount };
+        const { prevHash, hash } = await this.nextAuditHash(tx, checkId, payload);
+
+        await tx.auditRecord.create({
+          data: {
+            checkId,
+            actorId,
+            action: 'CHECK_APPROVED',
+            payload,
+            prevHash,
+            hash,
+          },
+        });
+
+        return updated;
       });
-      if (!check) throw new NotFoundException('Release check not found');
-
-      if (check.status !== 'PENDING') {
-        throw new ConflictException('Check is already ' + check.status);
-      }
-
-      const evidenceCount = await tx.evidenceItem.count({ where: { checkId } });
-      if (evidenceCount < 1) {
-        throw new BadRequestException('Cannot approve a check with no evidence');
-      }
-
-      const updated = await tx.releaseCheck.update({
-        where: { id: checkId },
-        data: {
-          status: 'APPROVED',
-          decidedAt: new Date(),
-          decidedById: actorId,
-          decisionReason: null,
-        },
-      });
-
-      const payload = { status: 'APPROVED', evidenceCount };
-      const { prevHash, hash } = await this.nextAuditHash(tx, checkId, payload);
-
-      await tx.auditRecord.create({
-        data: {
-          checkId,
-          actorId,
-          action: 'CHECK_APPROVED',
-          payload,
-          prevHash,
-          hash,
-        },
-      });
-
-      return updated;
-    });
+    } catch (err: any) {
+      this.logger.error(`Error approving check (checkId=${checkId})`, err?.stack || err);
+      console.error(err);
+      throw err;
+    }
   }
 
   // B2) Reject a check
   async reject(checkId: string, reason: string | undefined, actorId: string) {
-    return this.prisma.$transaction(async (tx: any) => {
-      const check = await tx.releaseCheck.findUnique({
-        where: { id: checkId },
-        select: { id: true, status: true },
+    try {
+      return await this.prisma.$transaction(async (tx: any) => {
+        const check = await tx.releaseCheck.findUnique({
+          where: { id: checkId },
+          select: { id: true, status: true },
+        });
+        if (!check) throw new NotFoundException('Release check not found');
+
+        if (check.status !== 'PENDING') {
+          throw new ConflictException('Check is already ' + check.status);
+        }
+
+        const updated = await tx.releaseCheck.update({
+          where: { id: checkId },
+          data: {
+            status: 'REJECTED',
+            decidedAt: new Date(),
+            decidedById: actorId,
+            decisionReason: reason ?? null,
+          },
+        });
+
+        const payload = { status: 'REJECTED', reason: reason ?? null };
+        const { prevHash, hash } = await this.nextAuditHash(tx, checkId, payload);
+
+        await tx.auditRecord.create({
+          data: {
+            checkId,
+            actorId,
+            action: 'CHECK_REJECTED',
+            payload,
+            prevHash,
+            hash,
+          },
+        });
+
+        return updated;
       });
-      if (!check) throw new NotFoundException('Release check not found');
-
-      if (check.status !== 'PENDING') {
-        throw new ConflictException('Check is already ' + check.status);
-      }
-
-      const updated = await tx.releaseCheck.update({
-        where: { id: checkId },
-        data: {
-          status: 'REJECTED',
-          decidedAt: new Date(),
-          decidedById: actorId,
-          decisionReason: reason ?? null,
-        },
-      });
-
-      const payload = { status: 'REJECTED', reason: reason ?? null };
-      const { prevHash, hash } = await this.nextAuditHash(tx, checkId, payload);
-
-      await tx.auditRecord.create({
-        data: {
-          checkId,
-          actorId,
-          action: 'CHECK_REJECTED',
-          payload,
-          prevHash,
-          hash,
-        },
-      });
-
-      return updated;
-    });
+    } catch (err: any) {
+      this.logger.error(`Error rejecting check (checkId=${checkId})`, err?.stack || err);
+      console.error(err);
+      throw err;
+    }
   }
 
   // A0) Dashboard list
@@ -226,50 +256,62 @@ export class ChecksService {
       where.status = status;
     }
 
-    const rows = await this.prisma.releaseCheck.findMany({
-      where,
-      take: take + 1,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-      orderBy: { [sort]: order },
-      select: {
-        id: true,
-        reference: true,
-        scheduledReleaseAt: true,
-        createdAt: true,
-        updatedAt: true,
-        status: true,
-        decidedAt: true,
-        decidedById: true,
-        decisionReason: true,
-        createdById: true,
-        _count: { select: { evidenceItems: true, auditRecords: true } },
-        // optional preview
-        evidenceItems: {
-          take: 1,
-          orderBy: { createdAt: 'desc' },
-          select: { createdAt: true, type: true },
+    try {
+      const rows = await this.prisma.releaseCheck.findMany({
+        where,
+        take: take + 1,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        orderBy: { [sort]: order },
+        select: {
+          id: true,
+          reference: true,
+          scheduledReleaseAt: true,
+          createdAt: true,
+          updatedAt: true,
+          status: true,
+          decidedAt: true,
+          decidedById: true,
+          decisionReason: true,
+          createdById: true,
+          _count: { select: { evidenceItems: true, auditRecords: true } },
+          // optional preview
+          evidenceItems: {
+            take: 1,
+            orderBy: { createdAt: 'desc' },
+            select: { createdAt: true, type: true },
+          },
         },
-      },
-    });
+      });
 
-    const hasNext = rows.length > take;
-    const items = hasNext ? rows.slice(0, take) : rows;
+      const hasNext = rows.length > take;
+      const items = hasNext ? rows.slice(0, take) : rows;
 
-    return {
-      items,
-      nextCursor: hasNext ? items[items.length - 1]?.id : null,
-    };
+      return {
+        items,
+        nextCursor: hasNext ? items[items.length - 1]?.id : null,
+      };
+    } catch (err: any) {
+      this.logger.error('Error listing checks', err?.stack || err);
+      console.error(err);
+      throw err;
+    }
   }
 
   async getCheck(checkId: string) {
-    const check = await this.prisma.releaseCheck.findUnique({
-      where: { id: checkId },
-      include: {
-        _count: { select: { evidenceItems: true, auditRecords: true } },
-      },
-    });
-    if (!check) throw new NotFoundException('Release check not found');
-    return check;
+    try {
+      const check = await this.prisma.releaseCheck.findUnique({
+        where: { id: checkId },
+        include: {
+          _count: { select: { evidenceItems: true, auditRecords: true } },
+        },
+      });
+      if (!check) throw new NotFoundException('Release check not found');
+      return check;
+    } catch (err: any) {
+      this.logger.error(`Error getting check (checkId=${checkId})`, err?.stack || err);
+      console.error(err);
+      throw err;
+    }
   }
 
   async listEvidence(checkId: string, opts?: { take?: number; cursor?: string }) {
@@ -278,56 +320,64 @@ export class ChecksService {
       throw new BadRequestException('take must be between 1 and 200');
     }
 
-    const exists = await this.prisma.releaseCheck.findUnique({
-      where: { id: checkId },
-      select: { id: true },
-    });
-    if (!exists) throw new NotFoundException('Release check not found');
+    try {
+      const exists = await this.prisma.releaseCheck.findUnique({
+        where: { id: checkId },
+        select: { id: true },
+      });
+      if (!exists) throw new NotFoundException('Release check not found');
 
-    const rows = await this.prisma.evidenceItem.findMany({
-      where: { checkId },
-      orderBy: { createdAt: 'desc' },
-      take: take + 1,
-      ...(opts?.cursor ? { skip: 1, cursor: { id: opts.cursor } } : {}),
-      select: {
-        id: true,
-        checkId: true,
-        type: true,
-        value: true,
-        source: true,
-        createdAt: true,
-        createdById: true,
-        createdBy: { select: { id: true, email: true, role: true } },
-      },
-    });
+      const rows = await this.prisma.evidenceItem.findMany({
+        where: { checkId },
+        orderBy: { createdAt: 'desc' },
+        take: take + 1,
+        ...(opts?.cursor ? { skip: 1, cursor: { id: opts.cursor } } : {}),
+        select: {
+          id: true,
+          checkId: true,
+          type: true,
+          value: true,
+          source: true,
+          createdAt: true,
+          createdById: true,
+          createdBy: { select: { id: true, email: true, role: true } },
+        },
+      });
 
-    const normalizeValue = (v: string) => {
-      const t = (v ?? '').trim();
-      // Handles legacy JSON-string rows like: "\"https://example.com\""
-      if (t.startsWith('"') && t.endsWith('"')) {
-        try {
-          const parsed = JSON.parse(t);
-          return typeof parsed === 'string' ? parsed : v;
-        } catch {
-          return v;
+      const normalizeValue = (v: string) => {
+        const t = (v ?? '').trim();
+        // Handles legacy JSON-string rows like: "\"https://example.com\""
+        if (t.startsWith('"') && t.endsWith('"')) {
+          try {
+            const parsed = JSON.parse(t);
+            return typeof parsed === 'string' ? parsed : v;
+          } catch {
+            return v;
+          }
         }
-      }
-      return v;
-    };
+        return v;
+      };
 
-    const mapped = rows.map((r) => ({
-  ...r,
-  value: normalizeValue(String(r.value)),
-}));
+      const mapped = rows.map((r) => ({
+        ...r,
+        value: normalizeValue(String(r.value)),
+      }));
 
+      const hasNext = mapped.length > take;
+      const items = hasNext ? mapped.slice(0, take) : mapped;
 
-    const hasNext = mapped.length > take;
-    const items = hasNext ? mapped.slice(0, take) : mapped;
-
-    return {
-      items,
-      nextCursor: hasNext ? items[items.length - 1]?.id : null,
-    };
+      return {
+        items,
+        nextCursor: hasNext ? items[items.length - 1]?.id : null,
+      };
+    } catch (err: any) {
+      this.logger.error(
+        `Error listing evidence (checkId=${checkId})`,
+        err?.stack || err,
+      );
+      console.error(err);
+      throw err;
+    }
   }
 
   async listAudit(
@@ -339,34 +389,40 @@ export class ChecksService {
       throw new BadRequestException('take must be between 1 and 500');
     }
 
-    const exists = await this.prisma.releaseCheck.findUnique({
-      where: { id: checkId },
-      select: { id: true },
-    });
-    if (!exists) throw new NotFoundException('Release check not found');
+    try {
+      const exists = await this.prisma.releaseCheck.findUnique({
+        where: { id: checkId },
+        select: { id: true },
+      });
+      if (!exists) throw new NotFoundException('Release check not found');
 
-    const items = await this.prisma.auditRecord.findMany({
-      where: { checkId },
-      orderBy: { createdAt: 'asc' },
-      take,
-      ...(opts?.cursor ? { skip: 1, cursor: { id: opts.cursor } } : {}),
-      select: {
-        id: true,
-        createdAt: true,
-        checkId: true,
-        actorId: true,
-        action: true,
-        payload: true,
-        prevHash: true,
-        hash: true,
-      },
-    });
+      const items = await this.prisma.auditRecord.findMany({
+        where: { checkId },
+        orderBy: { createdAt: 'asc' },
+        take,
+        ...(opts?.cursor ? { skip: 1, cursor: { id: opts.cursor } } : {}),
+        select: {
+          id: true,
+          createdAt: true,
+          checkId: true,
+          actorId: true,
+          action: true,
+          payload: true,
+          prevHash: true,
+          hash: true,
+        },
+      });
 
-    const nextCursor = items.length === take ? items[items.length - 1].id : null;
+      const nextCursor = items.length === take ? items[items.length - 1].id : null;
 
-    if (!opts?.verify) return { items, nextCursor };
+      if (!opts?.verify) return { items, nextCursor };
 
-    return { items, nextCursor, verification: this.verifyAuditChain(items) };
+      return { items, nextCursor, verification: this.verifyAuditChain(items) };
+    } catch (err: any) {
+      this.logger.error(`Error listing audit (checkId=${checkId})`, err?.stack || err);
+      console.error(err);
+      throw err;
+    }
   }
 
   private verifyAuditChain(rows: Array<{ prevHash: string | null; hash: string }>) {
@@ -389,3 +445,4 @@ export class ChecksService {
     return { ok, issues, total: rows.length };
   }
 }
+
