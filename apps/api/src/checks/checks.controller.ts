@@ -25,19 +25,21 @@ import { Role } from 'src/auth/roles/role.enum';
 export class ChecksController {
   constructor(private readonly checks: ChecksService) {}
 
+  private getDemoActorId() {
+    return process.env.DEV_ACTOR_ID ?? 'demo-actor';
+  }
+
   @ApiOperation({ summary: 'Create a release check' })
- 
   @Post()
-async create(@Body() dto: CreateCheckDto) {
-  const actorId = process.env.DEV_ACTOR_ID ?? 'demo-actor';
-  return this.checks.create(dto, actorId);
-}
+  async create(@Body() dto: CreateCheckDto) {
+    const actorId = this.getDemoActorId();
+    return this.checks.create(dto, actorId);
+  }
 
   @ApiOperation({ summary: 'Add evidence to a check' })
   @Post(':id/evidence')
   async addEvidence(@Param('id') checkId: string, @Body() dto: AddEvidenceDto) {
-    const actorId = process.env.DEV_ACTOR_ID;
-    if (!actorId) throw new Error('DEV_ACTOR_ID missing in .env (dev-only)');
+    const actorId = this.getDemoActorId();
     return this.checks.addEvidence(checkId, dto, actorId);
   }
 
@@ -51,9 +53,11 @@ async create(@Body() dto: CreateCheckDto) {
   @Post(':id/approve')
   @UseGuards(RolesGuard)
   @Roles(Role.SUPERVISOR, Role.AUDITOR)
-  async approve(@Param('id') checkId: string, @Headers('x-rg-role') role?: string) {
-    const actorId = process.env.DEV_ACTOR_ID;
-    if (!actorId) throw new Error('DEV_ACTOR_ID missing in .env (dev-only)');
+  async approve(
+    @Param('id') checkId: string,
+    @Headers('x-rg-role') role?: string,
+  ) {
+    const actorId = this.getDemoActorId();
     // role is read by RolesGuard; optional pass-through if you later want it in audit payload
     return this.checks.approve(checkId, actorId);
   }
@@ -73,8 +77,7 @@ async create(@Body() dto: CreateCheckDto) {
     @Body() dto: RejectCheckDto,
     @Headers('x-rg-role') role?: string,
   ) {
-    const actorId = process.env.DEV_ACTOR_ID;
-    if (!actorId) throw new Error('DEV_ACTOR_ID missing in .env (dev-only)');
+    const actorId = this.getDemoActorId();
     return this.checks.reject(checkId, dto.reason, actorId);
   }
 
