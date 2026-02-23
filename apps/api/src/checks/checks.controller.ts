@@ -26,8 +26,11 @@ export class ChecksController {
   constructor(private readonly checks: ChecksService) {}
 
   private getDemoActorId() {
-    return process.env.DEV_ACTOR_ID ?? 'demo-actor';
+  if (!process.env.DEV_ACTOR_ID) {
+    throw new Error('DEV_ACTOR_ID is not set on Render');
   }
+  return process.env.DEV_ACTOR_ID;
+}
 
   @ApiOperation({ summary: 'Create a release check' })
   @Post()
