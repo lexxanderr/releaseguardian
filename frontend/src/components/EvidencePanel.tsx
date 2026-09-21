@@ -20,21 +20,89 @@ function formatDate(iso: string) {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
 }
 
-function normalizeValue(v: any) {
-  if (typeof v === 'string') {
-    const t = v.trim();
-    // Handles legacy JSON-string rows like "\"https://example.com\""
-    if (t.startsWith('"') && t.endsWith('"')) {
-      try {
-        const parsed = JSON.parse(t);
-        return typeof parsed === 'string' ? parsed : v;
-      } catch {
-        return v;
-      }
+function formatLabel(value: string) {
+  return value
+    .replace(/_/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function normalizeValue(value: any) {
+  if (typeof value !== 'string') return value;
+
+  const trimmed = value.trim();
+
+  if (
+    (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+    (trimmed.startsWith('[') && trimmed.endsWith(']')) ||
+    (trimmed.startsWith('"') && trimmed.endsWith('"'))
+  ) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return value;
     }
-    return v;
   }
-  return v;
+
+  return value;
+}
+
+function displayValue(value: any) {
+  if (typeof value === 'boolean') {
+    return value ? 'Yes' : 'No';
+  }
+
+  if (value === null || value === undefined || value === '') {
+    return '—';
+  }
+
+  if (Array.isArray(value)) {
+    return value.join(', ');
+  }
+
+  return String(value);
+}
+
+function EvidenceValue({ value }: { value: any }) {
+  if (
+    value &&
+    typeof value === 'object' &&
+    !Array.isArray(value)
+  ) {
+    return (
+      <div className="evidence-fields">
+        {Object.entries(value).map(([key, fieldValue]) => (
+          <div className="evidence-field" key={key}>
+            <span className="evidence-field__label">
+              {formatLabel(key)}
+            </span>
+
+            <span className="evidence-field__value">
+              {displayValue(fieldValue)}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (
+    typeof value === 'string' &&
+    (value.startsWith('http://') || value.startsWith('https://'))
+  ) {
+    return (
+      <a
+        className="evidence-link"
+        href={value}
+        target="_blank"
+        rel="noreferrer"
+      >
+        {value}
+      </a>
+    );
+  }
+
+  return <span className="evidence-simple-value">{displayValue(value)}</span>;
 }
 
 export function EvidencePanel({
@@ -60,17 +128,26 @@ export function EvidencePanel({
 
         const data = (await getEvidence(checkId)) as EvidenceListResponse;
         const list = Array.isArray(data) ? (data as any) : data.items ?? [];
-        const cleaned = list.map((x: EvidenceItem) => ({
-          ...x,
-          value: normalizeValue(x.value),
+
+        const cleaned = list.map((item: EvidenceItem) => ({
+          ...item,
+          value: normalizeValue(item.value),
         }));
 
-        if (!cancelled) setItems(cleaned);
+        if (!cancelled) {
+          setItems(cleaned);
+        }
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : 'Failed to load evidence';
-        if (!cancelled) setError(msg);
+        const message =
+          e instanceof Error ? e.message : 'Failed to load evidence';
+
+        if (!cancelled) {
+          setError(message);
+        }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
@@ -82,68 +159,70 @@ export function EvidencePanel({
   }, [checkId, role, refreshKey]);
 
   return (
-    <section
-      style={{
-        marginTop: 16,
-        padding: 12,
-        border: '1px solid #ddd',
-        borderRadius: 8,
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'baseline',
-        }}
-      >
-        <strong>Evidence</strong>
-        <span style={{ fontSize: 12, color: '#666' }}>
-          {loading ? '…' : items.length} item{items.length === 1 ? '' : 's'}
+    <section className="evidence-list">
+      <div className="evidence-list__header">
+        <div>
+          <div className="evidence-list__eyebrow">VERIFICATION RECORDS</div>
+          <strong>Recorded evidence</strong>
+        </div>
+
+        <span className="evidence-list__total">
+          {loading ? '…' : items.length}
         </span>
       </div>
 
       {loading ? (
-        <p style={{ marginTop: 12 }}>Loading evidence…</p>
+        <div className="evidence-empty">Loading evidence…</div>
       ) : error ? (
-        <p style={{ marginTop: 12, color: 'crimson' }}>{error}</p>
+        <div className="evidence-empty evidence-empty--error">
+          {error}
+        </div>
       ) : items.length === 0 ? (
-        <p style={{ marginTop: 12 }}>No evidence yet.</p>
+        <div className="evidence-empty evidence-empty--no-records">
+          <div className="evidence-empty__icon">＋</div>
+          <strong>No evidence recorded</strong>
+          <span>
+            Evidence must be recorded before this release can be approved.
+          </span>
+        </div>
       ) : (
-        <ul style={{ marginTop: 12, paddingLeft: 18 }}>
+        <div className="evidence-records">
           {items.map((ev) => (
-            <li key={ev.id} style={{ marginBottom: 10 }}>
-              <div>
-                <b>{ev.type}</b>
+            <article className="evidence-record" key={ev.id}>
+              <div className="evidence-record__top">
+                <div className="evidence-record__icon">✓</div>
+
+                <div>
+                  <div className="evidence-record__type">
+                    {formatLabel(ev.type)}
+                  </div>
+                  <div className="evidence-record__verified">
+                    Evidence recorded
+                  </div>
+                </div>
               </div>
 
-              <div style={{ marginTop: 4 }}>
-                {typeof ev.value === 'string' &&
-                (ev.value.startsWith('http://') ||
-                  ev.value.startsWith('https://')) ? (
-                  <a href={ev.value} target="_blank" rel="noreferrer">
-                    {ev.value}
-                  </a>
-                ) : (
-                  <span
-                    style={{
-                      fontFamily:
-                        'ui-monospace, SFMono-Regular, Menlo, monospace',
-                    }}
-                  >
-                    {String(ev.value)}
-                  </span>
-                )}
-              </div>
+              <EvidenceValue value={ev.value} />
 
-              <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
-                Source: {ev.source ?? '—'} · Recorded:{' '}
-                {formatDate(ev.createdAt)} · By:{' '}
-                {ev.createdBy?.email ?? '—'}
+              <div className="evidence-record__meta">
+                <div>
+                  <span>Source</span>
+                  <strong>{ev.source ?? '—'}</strong>
+                </div>
+
+                <div>
+                  <span>Recorded</span>
+                  <strong>{formatDate(ev.createdAt)}</strong>
+                </div>
+
+                <div>
+                  <span>Recorded by</span>
+                  <strong>{ev.createdBy?.email ?? '—'}</strong>
+                </div>
               </div>
-            </li>
+            </article>
           ))}
-        </ul>
+        </div>
       )}
     </section>
   );
