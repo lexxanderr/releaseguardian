@@ -452,7 +452,7 @@ export default function App() {
     setDetailError(null);
     setDetailLoading(true);
 
-    setEvidenceCollapsed(false);
+    setEvidenceCollapsed(isMobile);
 
     const h = { 'x-rg-role': role };
 
@@ -489,16 +489,16 @@ export default function App() {
     };
   }, [selectedId, role]);
 
-  // Auto-scroll to details on mobile
+  // Mobile: selecting a case navigates directly to the case screen.
+  // Do not reuse the desktop Full Review mode.
   useEffect(() => {
-    if (!selectedId) return;
-    if (!isMobile) return;
+    if (!selectedId || !isMobile) return;
+
+    setFullReview(false);
+    setEvidenceCollapsed(true);
 
     requestAnimationFrame(() => {
-      document.querySelector('.checks-panel')?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   }, [selectedId, isMobile]);
 
@@ -680,7 +680,11 @@ export default function App() {
         </div>
 
         {/* Release checks workspace */}
-        <section className="rg-workspace-heading">
+        <section
+          className={`rg-workspace-heading ${
+            isMobile && selectedId ? 'mobile-case-open-hidden' : ''
+          }`}
+        >
           <div className="rg-workspace-heading__copy">
             <span className="rg-eyebrow">Release control</span>
             <h2>Release Checks</h2>
@@ -716,7 +720,9 @@ export default function App() {
         <div
             className={`checks-layout ${
               selectedId ? 'has-selection' : 'no-selection'
-            } ${fullReview && selectedId ? 'full-review' : ''}`}
+            } ${fullReview && selectedId ? 'full-review' : ''} ${
+              isMobile && selectedId ? 'mobile-case-mode' : ''
+            }`}
           >
           {/* Desktop-only resize handle */}
           {isDesktop && !fullReview && (
@@ -731,7 +737,7 @@ export default function App() {
           )}
 
           {/* LIST */}
-          <div className="checks-table">
+          <div className={`checks-table ${isMobile && selectedId ? 'mobile-case-list-hidden' : ''}`}>
             {listError && <p style={{ color: 'red' }}>Error: {listError}</p>}
 
             {!showList ? (
@@ -791,8 +797,11 @@ export default function App() {
                             setSelectedId(c.id);
                             setFullReview(false);
                             setDetailError(null);
-                            // small widen on desktop for detail reading (keeps things from feeling cramped)
-                    
+
+                            if (isMobile) {
+                              setEvidenceCollapsed(true);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }
                           }}
                           className={c.id === selectedId ? 'row-active' : undefined}
                           style={{ cursor: 'pointer' }}
@@ -848,21 +857,27 @@ export default function App() {
           <div className="checks-panel">
             {selectedId ? (
               <div className="panel-card">
-                <div className="panel-header">
+                <div className={`panel-header ${isMobile ? 'mobile-case-nav' : ''}`}>
                   <div className="panel-header__identity">
-                    <strong>
-                      {fullReview ? 'Case review' : 'Check details'}
-                    </strong>
+                    {!isMobile && (
+                      <>
+                        <strong>{fullReview ? 'Case review' : 'Check details'}</strong>
 
-                    {fullReview && detail?.reference && (
-                      <span className="panel-header__reference">
-                        {detail.reference}
-                      </span>
+                        {fullReview && detail?.reference && (
+                          <span className="panel-header__reference">
+                            {detail.reference}
+                          </span>
+                        )}
+                      </>
+                    )}
+
+                    {isMobile && (
+                      <span className="mobile-case-nav__label">Case review</span>
                     )}
                   </div>
 
                   <div className="panel-header__actions">
-                    {!fullReview && (
+                    {!fullReview && !isMobile && (
                       <button
                         className="panel-full-review"
                         type="button"
@@ -890,15 +905,24 @@ export default function App() {
                           setSelectedId(null);
                           setFullReview(false);
                           setDetailError(null);
+
+                          if (isMobile) {
+                            requestAnimationFrame(() => {
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            });
+                          }
                         }}
                       >
-                        Back
+                        {isMobile ? '← Cases' : 'Back'}
                       </button>
                     )}
                   </div>
                 </div>
 
-                <div style={{ marginTop: 8, fontSize: 13, color: '#444' }}>
+                <div
+                  className="case-technical-id"
+                  style={{ marginTop: 8, fontSize: 13, color: '#444' }}
+                >
                   <div>
                     <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>{selected?.id}</span>
                   </div>
