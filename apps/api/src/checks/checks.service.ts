@@ -88,7 +88,7 @@ export class ChecksService {
           data: {
             checkId,
             type: dto.type,
-            value: dto.value,
+            value: JSON.stringify(dto.value),
             source: dto.source ?? null,
             createdById: actorId,
           },
