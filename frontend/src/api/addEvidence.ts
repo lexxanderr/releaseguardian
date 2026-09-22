@@ -12,7 +12,7 @@ export type EvidenceType =
 
 export type AddEvidenceRequest = {
   type: EvidenceType;
-  value: string;
+  value: Record<string, unknown>;
   source?: string;
 };
 

@@ -94,7 +94,7 @@ export function AddEvidenceForm({
 
               await addEvidence(
                 checkId,
-                { type, value: value.trim(), source },
+                { type, value: { value: value.trim() }, source: source.trim() || undefined },
                 role
               );
 

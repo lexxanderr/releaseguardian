@@ -112,11 +112,102 @@ function EmptyPanel() {
 function EmptyListState({
   role,
   onShowAll,
+  checks,
+  isMobile,
 }: {
   role: Role;
   onShowAll: () => void;
+  checks: Check[];
+  isMobile: boolean;
 }) {
   const meta = ROLE_META[role];
+
+  const pendingCount = checks.filter((check) => check.status === 'PENDING').length;
+  const approvedCount = checks.filter((check) => check.status === 'APPROVED').length;
+  const rejectedCount = checks.filter((check) => check.status === 'REJECTED').length;
+
+  if (isMobile) {
+    return (
+      <div className="rg-mobile-workspace">
+        <section className="rg-mobile-workspace__intro">
+          <div className="rg-mobile-workspace__eyebrow">YOUR WORKSPACE</div>
+
+          <div className="rg-mobile-workspace__heading">
+            <div>
+              <h2>{checks.length} release cases</h2>
+              <p>
+                {pendingCount > 0
+                  ? `${pendingCount} ${pendingCount === 1 ? 'case requires' : 'cases require'} review`
+                  : 'No cases currently require review'}
+              </p>
+            </div>
+
+            <div className="rg-mobile-workspace__total">
+              <span>{checks.length}</span>
+              <small>Total</small>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="rg-mobile-workspace__primary"
+            onClick={onShowAll}
+          >
+            <span>View all release cases</span>
+            <span aria-hidden="true">→</span>
+          </button>
+        </section>
+
+        <section className="rg-mobile-workspace__stats" aria-label="Release case status">
+          <div className="rg-mobile-stat rg-mobile-stat--pending">
+            <span className="rg-mobile-stat__dot" />
+            <strong>{pendingCount}</strong>
+            <div>
+              <b>Pending</b>
+              <small>Needs review</small>
+            </div>
+          </div>
+
+          <div className="rg-mobile-stat rg-mobile-stat--approved">
+            <span className="rg-mobile-stat__dot" />
+            <strong>{approvedCount}</strong>
+            <div>
+              <b>Approved</b>
+              <small>Completed</small>
+            </div>
+          </div>
+
+          <div className="rg-mobile-stat rg-mobile-stat--rejected">
+            <span className="rg-mobile-stat__dot" />
+            <strong>{rejectedCount}</strong>
+            <div>
+              <b>Rejected</b>
+              <small>Completed</small>
+            </div>
+          </div>
+        </section>
+
+        <section className="rg-mobile-workspace__access">
+          <div className="rg-mobile-workspace__access-head">
+            <span className="rg-mobile-workspace__check">✓</span>
+            <div>
+              <small>YOUR ACCESS</small>
+              <strong>{meta.label}</strong>
+            </div>
+          </div>
+
+          <div className="rg-mobile-workspace__permissions">
+            {meta.can.slice(0, 4).map((permission) => (
+              <span key={permission}>
+                <i aria-hidden="true">✓</i>
+                {permission}
+              </span>
+            ))}
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="rg-landing">
@@ -136,7 +227,7 @@ function EmptyListState({
             className="rg-landing__primary"
             onClick={onShowAll}
           >
-            View all cases
+            View release cases
             <span aria-hidden="true">→</span>
           </button>
 
@@ -183,7 +274,7 @@ function EmptyListState({
           <div className="rg-access-strip__indicator">✓</div>
 
           <div>
-            <div className="rg-access-strip__eyebrow">CURRENT ACCESS</div>
+            <div className="rg-access-strip__eyebrow">YOUR ACCESS</div>
             <div className="rg-access-strip__role">
               {meta.label}
               <span>{role}</span>
@@ -340,9 +431,9 @@ export default function App() {
     return m ?? null;
   };
 
-  // Load list (only when engaged AND not in searchMode)
+  // Load release data immediately so the workspace summary always
+  // reflects the real API state. hasEngaged controls list visibility only.
   useEffect(() => {
-    if (!hasEngaged) return;
     if (searchMode) return; // search mode manages its own list display
 
     let alive = true;
@@ -373,7 +464,7 @@ export default function App() {
     return () => {
       alive = false;
     };
-  }, [query, role, hasEngaged, searchMode]);
+  }, [query, role, searchMode]);
 
   const exitSearchMode = () => {
     setSearchMode(false);
@@ -562,6 +653,30 @@ export default function App() {
     }
   };
 
+  const goToDashboard = () => {
+    setHasEngaged(true);
+    setSearchMode(false);
+    setSearchId('');
+    setSearchError(null);
+    setListError(null);
+    setStatus('ALL');
+
+    setSelectedId(null);
+    setDetail(null);
+    setDetailError(null);
+    setAudit([]);
+    setVerifyOk(null);
+    setFullReview(false);
+    setEvidenceCollapsed(false);
+
+    // Restore the already-loaded dashboard list immediately.
+    if (fullListRef.current.length > 0) {
+      setChecks(fullListRef.current);
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const showList = hasEngaged;
 
   // Mobile: scroll-to-top button
@@ -583,7 +698,13 @@ export default function App() {
         {/* Header */}
         <div className="page-header rg-header">
           {/* LEFT: Brand */}
-          <div className="rg-header__left">
+          <button
+            type="button"
+            className="rg-header__left rg-dashboard-link"
+            onClick={goToDashboard}
+            aria-label="Return to dashboard"
+            title="Dashboard"
+          >
             <div className="page-title">
               <div className="rg-title">
                 <img src={logo} alt="ReleaseGuardian" className="rg-logo" />
@@ -594,7 +715,7 @@ export default function App() {
                 <span className="page-subtitle">Audit &amp; Release Control</span>
               </div>
             </div>
-          </div>
+          </button>
 
           {/* CENTER: Search */}
           <div className="rg-header__center">
@@ -652,8 +773,12 @@ export default function App() {
           <div className="rg-header__right">
             <div className="role-switch rg-rolepill">
               <label>
-                Demo role:
+                <span className="rg-rolepill__label">
+                  <small>Viewing as</small>
+                  <strong>{role.charAt(0) + role.slice(1).toLowerCase()}</strong>
+                </span>
                 <select
+                  aria-label="Change demo role" 
                   value={role}
                   onChange={(e) => {
                     setRole(e.target.value as Role);
@@ -686,9 +811,24 @@ export default function App() {
           }`}
         >
           <div className="rg-workspace-heading__copy">
-            <span className="rg-eyebrow">Release control</span>
-            <h2>Release Checks</h2>
-            <p>Review evidence, verify compliance and authorise release decisions.</p>
+            <span className="rg-eyebrow">
+              <span className="rg-eyebrow__mark" aria-hidden="true" />
+              Release control
+            </span>
+
+            <h2>Case workspace</h2>
+            <p>Review release cases, evidence and authorisation status.</p>
+
+            <div className="rg-workspace-meta" aria-label="Release case summary">
+              <span className="rg-workspace-meta__review">
+                <i aria-hidden="true" />
+                {checks.filter((c) => c.status === 'PENDING').length} require review
+              </span>
+
+              <span className="rg-workspace-meta__divider" aria-hidden="true" />
+
+              <span>{checks.length} total cases</span>
+            </div>
           </div>
 
           <div className="rg-status-toolbar" aria-label="Filter release checks by status">
@@ -743,6 +883,8 @@ export default function App() {
             {!showList ? (
               <EmptyListState
                 role={role}
+                checks={checks}
+                isMobile={isMobile}
                 onShowAll={() => {
                   setHasEngaged(true);
                   setSearchMode(false);
