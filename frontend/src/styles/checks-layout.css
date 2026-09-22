@@ -5011,3 +5011,1252 @@ body.rg-resizing * {
     color: #315f86;
   }
 }
+
+/* =========================================================
+   RELEASEGUARDIAN — DARK THEME
+   ========================================================= */
+
+.rg-theme-toggle {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 999px;
+  background: rgba(255,255,255,.10);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  transition: background .2s ease, border-color .2s ease, transform .2s ease;
+}
+
+.rg-theme-toggle:hover {
+  background: rgba(255,255,255,.18);
+}
+
+.rg-theme-toggle:active {
+  transform: scale(.94);
+}
+
+:root[data-rg-theme="dark"] {
+  color-scheme: dark;
+}
+
+:root[data-rg-theme="dark"] body,
+:root[data-rg-theme="dark"] .rg-shell {
+  background: #0b1118 !important;
+  color: #e8edf3 !important;
+}
+
+:root[data-rg-theme="dark"] .rg-container {
+  color: #e8edf3;
+}
+
+/* Main workspace surfaces */
+:root[data-rg-theme="dark"] .checks-table,
+:root[data-rg-theme="dark"] .checks-panel,
+:root[data-rg-theme="dark"] .table-shell,
+:root[data-rg-theme="dark"] .panel-card,
+:root[data-rg-theme="dark"] .rg-dashboard-card,
+:root[data-rg-theme="dark"] .rg-access-strip {
+  background: #111923 !important;
+  border-color: #263241 !important;
+  color: #e8edf3 !important;
+}
+
+/* Tables */
+:root[data-rg-theme="dark"] table,
+:root[data-rg-theme="dark"] thead,
+:root[data-rg-theme="dark"] tbody,
+:root[data-rg-theme="dark"] tr,
+:root[data-rg-theme="dark"] td,
+:root[data-rg-theme="dark"] th {
+  border-color: #263241 !important;
+}
+
+:root[data-rg-theme="dark"] tbody tr {
+  background: #111923;
+}
+
+:root[data-rg-theme="dark"] tbody tr:hover {
+  background: #172230 !important;
+}
+
+/* General typography */
+:root[data-rg-theme="dark"] h1,
+:root[data-rg-theme="dark"] h2,
+:root[data-rg-theme="dark"] h3,
+:root[data-rg-theme="dark"] h4,
+:root[data-rg-theme="dark"] strong,
+:root[data-rg-theme="dark"] th {
+  color: #f1f5f9 !important;
+}
+
+:root[data-rg-theme="dark"] p,
+:root[data-rg-theme="dark"] td,
+:root[data-rg-theme="dark"] .col-sub {
+  color: #aab6c5;
+}
+
+/* Inputs */
+:root[data-rg-theme="dark"] input,
+:root[data-rg-theme="dark"] textarea,
+:root[data-rg-theme="dark"] select {
+  background: #0d151f !important;
+  border-color: #334155 !important;
+  color: #e8edf3 !important;
+}
+
+:root[data-rg-theme="dark"] input::placeholder,
+:root[data-rg-theme="dark"] textarea::placeholder {
+  color: #718096 !important;
+}
+
+/* Navigation back link */
+:root[data-rg-theme="dark"] .cases-dashboard-back {
+  color: #9fb4c9 !important;
+}
+
+/* Preserve status meaning in dark mode */
+:root[data-rg-theme="dark"] .status-pill {
+  border-color: rgba(255,255,255,.10);
+}
+
+/* Gentle transitions */
+body,
+.rg-shell,
+.checks-table,
+.checks-panel,
+.table-shell,
+.panel-card,
+.rg-dashboard-card {
+  transition:
+    background-color .22s ease,
+    color .22s ease,
+    border-color .22s ease;
+}
+
+@media (max-width: 900px) {
+  .rg-theme-toggle {
+    width: 34px;
+    height: 34px;
+    font-size: 17px;
+  }
+}
+
+/* =========================================================
+   DARK THEME — SURFACE + CONTRAST FIX
+   ========================================================= */
+
+:root[data-rg-theme="dark"] {
+  --rg-dark-bg: #081018;
+  --rg-dark-surface: #111b26;
+  --rg-dark-surface-2: #162230;
+  --rg-dark-surface-3: #1b2938;
+  --rg-dark-border: #2b3b4d;
+  --rg-dark-text: #f1f5f9;
+  --rg-dark-muted: #9cabbc;
+}
+
+/* Dashboard / landing surfaces */
+:root[data-rg-theme="dark"] .rg-landing,
+:root[data-rg-theme="dark"] .rg-landing-hero,
+:root[data-rg-theme="dark"] .rg-dashboard-card,
+:root[data-rg-theme="dark"] .rg-dashboard-stats,
+:root[data-rg-theme="dark"] .rg-dashboard-stat,
+:root[data-rg-theme="dark"] .rg-access-strip,
+:root[data-rg-theme="dark"] .rg-access-card {
+  background: var(--rg-dark-surface) !important;
+  border-color: var(--rg-dark-border) !important;
+  color: var(--rg-dark-text) !important;
+}
+
+/* Catch dashboard cards whose class names vary */
+:root[data-rg-theme="dark"] .checks-table > div:not(.table-shell),
+:root[data-rg-theme="dark"] .checks-panel > div {
+  border-color: var(--rg-dark-border);
+}
+
+/* Review/detail surfaces */
+:root[data-rg-theme="dark"] .checks-panel,
+:root[data-rg-theme="dark"] .panel-card,
+:root[data-rg-theme="dark"] .detail-card,
+:root[data-rg-theme="dark"] .evidence-card,
+:root[data-rg-theme="dark"] .decision-card,
+:root[data-rg-theme="dark"] .audit-card {
+  background: var(--rg-dark-surface) !important;
+  border-color: var(--rg-dark-border) !important;
+  color: var(--rg-dark-text) !important;
+}
+
+/* White cards nested inside review panel */
+:root[data-rg-theme="dark"] .checks-panel section,
+:root[data-rg-theme="dark"] .checks-panel article {
+  background-color: var(--rg-dark-surface) !important;
+  border-color: var(--rg-dark-border) !important;
+}
+
+/* Text contrast */
+:root[data-rg-theme="dark"] .checks-panel h1,
+:root[data-rg-theme="dark"] .checks-panel h2,
+:root[data-rg-theme="dark"] .checks-panel h3,
+:root[data-rg-theme="dark"] .checks-panel h4,
+:root[data-rg-theme="dark"] .checks-panel b,
+:root[data-rg-theme="dark"] .checks-panel strong {
+  color: var(--rg-dark-text) !important;
+}
+
+:root[data-rg-theme="dark"] .checks-panel p,
+:root[data-rg-theme="dark"] .checks-panel small {
+  color: var(--rg-dark-muted);
+}
+
+/* Filter bar */
+:root[data-rg-theme="dark"] .status-filters {
+  background: var(--rg-dark-surface-2) !important;
+  border-color: var(--rg-dark-border) !important;
+}
+
+/* Dashboard/list table header */
+:root[data-rg-theme="dark"] .table-shell thead,
+:root[data-rg-theme="dark"] .table-shell thead tr,
+:root[data-rg-theme="dark"] .table-shell th {
+  background: var(--rg-dark-surface-2) !important;
+  color: var(--rg-dark-muted) !important;
+}
+
+/* Generic light buttons inside dark review area */
+:root[data-rg-theme="dark"] .checks-panel button:not(.status-pill) {
+  border-color: #3a4b60;
+}
+
+/* Keep important coloured controls/statuses intact */
+:root[data-rg-theme="dark"] .status-pill,
+:root[data-rg-theme="dark"] .rg-searchbtn {
+  filter: none;
+}
+
+/* Mobile dashboard cards */
+@media (max-width: 900px) {
+  :root[data-rg-theme="dark"] .checks-table {
+    background: transparent !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-dashboard-card,
+  :root[data-rg-theme="dark"] .rg-dashboard-stats,
+  :root[data-rg-theme="dark"] .rg-access-strip {
+    background: var(--rg-dark-surface) !important;
+    border-color: var(--rg-dark-border) !important;
+  }
+}
+
+/* =========================================================
+   DARK THEME — COMPONENT FINISHING PASS
+   ========================================================= */
+
+/* Dashboard capability cards */
+:root[data-rg-theme="dark"] .rg-capability-card {
+  background: #111b26 !important;
+  border-color: #2b3b4d !important;
+  color: #f1f5f9 !important;
+}
+
+:root[data-rg-theme="dark"] .rg-capability-card h3 {
+  color: #f1f5f9 !important;
+}
+
+:root[data-rg-theme="dark"] .rg-capability-card p {
+  color: #9cabbc !important;
+}
+
+:root[data-rg-theme="dark"] .rg-capability-card__icon {
+  background: #1a2938 !important;
+  border-color: #34475b !important;
+  color: #9fb6cc !important;
+}
+
+/* Evidence workspace */
+:root[data-rg-theme="dark"] .evidence-card,
+:root[data-rg-theme="dark"] .evidence-card__header,
+:root[data-rg-theme="dark"] .evidence-card__body,
+:root[data-rg-theme="dark"] .evidence-list,
+:root[data-rg-theme="dark"] .evidence-list__header,
+:root[data-rg-theme="dark"] .evidence-records {
+  background: #111b26 !important;
+  border-color: #2b3b4d !important;
+  color: #f1f5f9 !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-card strong,
+:root[data-rg-theme="dark"] .evidence-list strong {
+  color: #f1f5f9 !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-card__count,
+:root[data-rg-theme="dark"] .evidence-list__total {
+  background: #1b2938 !important;
+  border-color: #34475b !important;
+  color: #c7d3df !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-action-btn {
+  background: #162230 !important;
+  border-color: #34475b !important;
+  color: #c7d3df !important;
+}
+
+/* Empty evidence state */
+:root[data-rg-theme="dark"] .evidence-empty {
+  background: #0d1721 !important;
+  border-color: #2b3b4d !important;
+  color: #9cabbc !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-empty strong {
+  color: #e7edf4 !important;
+}
+
+/* Decision controls */
+:root[data-rg-theme="dark"] .decision-card,
+:root[data-rg-theme="dark"] .decision-card__header,
+:root[data-rg-theme="dark"] .decision-card__body {
+  background: #111b26 !important;
+  border-color: #2b3b4d !important;
+  color: #f1f5f9 !important;
+}
+
+/* Shared section labels */
+:root[data-rg-theme="dark"] .case-section-eyebrow,
+:root[data-rg-theme="dark"] .evidence-list__eyebrow,
+:root[data-rg-theme="dark"] .rg-capability-card__eyebrow {
+  color: #7f9ab3 !important;
+}
+
+/* Nested review surfaces */
+:root[data-rg-theme="dark"] .evidence-card input,
+:root[data-rg-theme="dark"] .evidence-card textarea,
+:root[data-rg-theme="dark"] .evidence-card select,
+:root[data-rg-theme="dark"] .decision-card input,
+:root[data-rg-theme="dark"] .decision-card textarea,
+:root[data-rg-theme="dark"] .decision-card select {
+  background: #0c151f !important;
+  border-color: #34475b !important;
+  color: #eef3f8 !important;
+}
+
+/* Mobile */
+@media (max-width: 900px) {
+  :root[data-rg-theme="dark"] .rg-capability-card,
+  :root[data-rg-theme="dark"] .evidence-card,
+  :root[data-rg-theme="dark"] .evidence-list,
+  :root[data-rg-theme="dark"] .decision-card {
+    background: #111b26 !important;
+    border-color: #2b3b4d !important;
+  }
+}
+
+/* =========================================================
+   DARK THEME — FINAL CHROME PASS
+   ========================================================= */
+
+/* Split-view + full-review top header */
+:root[data-rg-theme="dark"] .checks-layout .panel-header {
+  background: #111b26 !important;
+  border-color: #2b3b4d !important;
+  color: #f1f5f9 !important;
+}
+
+:root[data-rg-theme="dark"] .checks-layout .panel-header strong {
+  color: #f1f5f9 !important;
+}
+
+:root[data-rg-theme="dark"] .checks-layout .panel-header button {
+  background: #162230 !important;
+  border-color: #3a4b60 !important;
+  color: #dce6ef !important;
+}
+
+/* Case ID / identifier field below Check details */
+:root[data-rg-theme="dark"] .checks-panel input {
+  background: #0c151f !important;
+  border-color: #34475b !important;
+  color: #aebdcb !important;
+}
+
+/* Filter control */
+:root[data-rg-theme="dark"] .status-filters {
+  background: #111b26 !important;
+  border-color: #2b3b4d !important;
+  color: #9cabbc !important;
+}
+
+:root[data-rg-theme="dark"] .status-filters button {
+  background: transparent !important;
+  color: #9cabbc !important;
+  border-color: transparent !important;
+}
+
+:root[data-rg-theme="dark"] .status-filters button.active,
+:root[data-rg-theme="dark"] .status-filters button[aria-pressed="true"] {
+  background: #263649 !important;
+  color: #f1f5f9 !important;
+}
+
+/* Dashboard access strip contrast */
+:root[data-rg-theme="dark"] .rg-access-strip__eyebrow {
+  color: #8fa7bd !important;
+}
+
+:root[data-rg-theme="dark"] .rg-access-strip__role {
+  color: #f1f5f9 !important;
+}
+
+:root[data-rg-theme="dark"] .rg-access-strip__role span {
+  color: #aebdcb !important;
+}
+
+:root[data-rg-theme="dark"] .rg-access-strip__permissions span {
+  color: #91a4b7 !important;
+}
+
+/* Mobile case navigation */
+:root[data-rg-theme="dark"] .mobile-case-nav {
+  background: #111b26 !important;
+  border-color: #2b3b4d !important;
+  color: #f1f5f9 !important;
+}
+
+:root[data-rg-theme="dark"] .mobile-case-nav__label {
+  color: #f1f5f9 !important;
+}
+
+/* DARK THEME — TECHNICAL CASE ID FIX */
+:root[data-rg-theme="dark"] .case-technical-id {
+  background: #0c151f !important;
+  border: 1px solid #34475b !important;
+  color: #9fb0c2 !important;
+  box-shadow: none !important;
+}
+
+:root[data-rg-theme="dark"] .case-technical-id:hover,
+:root[data-rg-theme="dark"] .case-technical-id:focus {
+  background: #0c151f !important;
+  border-color: #49627a !important;
+  color: #c7d3df !important;
+}
+
+/* =========================================================
+   DARK THEME — STATUS FILTER TOOLBAR
+   ========================================================= */
+
+:root[data-rg-theme="dark"] .rg-status-toolbar {
+  background: #111b26 !important;
+  border-color: #2b3b4d !important;
+  box-shadow: none !important;
+}
+
+:root[data-rg-theme="dark"] .rg-status-filter {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: #9cabbc !important;
+  box-shadow: none !important;
+}
+
+:root[data-rg-theme="dark"] .rg-status-filter:hover {
+  background: #192635 !important;
+  color: #dce6ef !important;
+}
+
+:root[data-rg-theme="dark"] .rg-status-filter.is-active {
+  background: #263649 !important;
+  border-color: #34475b !important;
+  color: #f1f5f9 !important;
+  box-shadow: none !important;
+}
+
+/* Technical ID */
+:root[data-rg-theme="dark"] .case-technical-id {
+  background: #0c151f !important;
+  border-color: #34475b !important;
+  color: #9fb0c2 !important;
+  box-shadow: none !important;
+}
+
+/* =========================================================
+   DARK THEME — EVIDENCE RECORD FINAL PASS
+   ========================================================= */
+
+:root[data-rg-theme="dark"] .evidence-record {
+  background: #0d1721 !important;
+  border-color: #2b3b4d !important;
+  color: #f1f5f9 !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-record__top {
+  background: #111b26 !important;
+  border-color: #2b3b4d !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-record__type {
+  color: #f1f5f9 !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-record__verified {
+  color: #8fa4b8 !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-record__meta {
+  background: #162230 !important;
+  border-color: #2b3b4d !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-record__meta > div {
+  background: transparent !important;
+  border-color: #2b3b4d !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-record__meta span {
+  color: #8298ad !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-record__meta strong {
+  color: #dce6ef !important;
+}
+
+/* Evidence value / URL area */
+:root[data-rg-theme="dark"] .evidence-record a {
+  color: #6ea8ff !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-record a:hover {
+  color: #9bc2ff !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-record__icon {
+  background: #d9fff1 !important;
+  color: #08785b !important;
+}
+
+/* =========================================================
+   DARK THEME — DEPTH / PREMIUM NAVY PASS
+   ========================================================= */
+
+:root[data-rg-theme="dark"] {
+  --rg-dark-bg: #081018;
+  --rg-dark-surface: #101c28;
+  --rg-dark-surface-2: #142333;
+  --rg-dark-surface-3: #192b3d;
+  --rg-dark-raised: #22384e;
+  --rg-dark-border: #31475c;
+  --rg-dark-text: #f1f5f9;
+  --rg-dark-muted: #a8b7c7;
+}
+
+/* Main workspace remains darkest */
+:root[data-rg-theme="dark"] .checks-layout {
+  background: #081018 !important;
+}
+
+/* List + review panes */
+:root[data-rg-theme="dark"] .checks-table,
+:root[data-rg-theme="dark"] .checks-panel {
+  background: #0d1823 !important;
+}
+
+/* Table header gets its own layer */
+:root[data-rg-theme="dark"] .table-shell thead,
+:root[data-rg-theme="dark"] .table-shell thead tr,
+:root[data-rg-theme="dark"] .table-shell th {
+  background: #192b3d !important;
+  border-color: #31475c !important;
+}
+
+/* Individual rows */
+:root[data-rg-theme="dark"] .table-shell tbody tr {
+  background: #101c28 !important;
+  border-color: #263b4e !important;
+}
+
+:root[data-rg-theme="dark"] .table-shell tbody tr:hover {
+  background: #17283a !important;
+}
+
+:root[data-rg-theme="dark"] .table-shell tbody tr.row-active {
+  background: #192b3d !important;
+}
+
+/* Primary review cards */
+:root[data-rg-theme="dark"] .case-summary-card,
+:root[data-rg-theme="dark"] .decision-card,
+:root[data-rg-theme="dark"] .evidence-card,
+:root[data-rg-theme="dark"] .integrity-card,
+:root[data-rg-theme="dark"] .audit-card {
+  background: #101c28 !important;
+  border-color: #31475c !important;
+}
+
+/* Card headers */
+:root[data-rg-theme="dark"] .case-summary-card__top,
+:root[data-rg-theme="dark"] .decision-card__header,
+:root[data-rg-theme="dark"] .evidence-card__header,
+:root[data-rg-theme="dark"] .evidence-list__header {
+  background: #142333 !important;
+  border-color: #31475c !important;
+}
+
+/* Evidence section gets another visible layer */
+:root[data-rg-theme="dark"] .evidence-card__body {
+  background: #0d1823 !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-list {
+  background: #142333 !important;
+  border-color: #31475c !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-record {
+  background: #101c28 !important;
+  border-color: #31475c !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-record__top {
+  background: #142333 !important;
+  border-color: #31475c !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-record__meta {
+  background: #192b3d !important;
+  border-color: #31475c !important;
+}
+
+/* Panel navigation/header */
+:root[data-rg-theme="dark"] .checks-layout .panel-header {
+  background: #142333 !important;
+  border-color: #31475c !important;
+}
+
+/* Dashboard capability cards */
+:root[data-rg-theme="dark"] .rg-capability-card {
+  background: #142333 !important;
+  border-color: #31475c !important;
+}
+
+:root[data-rg-theme="dark"] .rg-capability-card:hover {
+  background: #192b3d !important;
+  border-color: #41617e !important;
+}
+
+/* Access strip */
+:root[data-rg-theme="dark"] .rg-access-strip {
+  background: #142333 !important;
+  border-color: #31475c !important;
+}
+
+/* Filter toolbar */
+:root[data-rg-theme="dark"] .rg-status-toolbar {
+  background: #101c28 !important;
+  border-color: #31475c !important;
+}
+
+:root[data-rg-theme="dark"] .rg-status-filter.is-active {
+  background: #22384e !important;
+  border-color: #41617e !important;
+}
+
+/* Technical ID */
+:root[data-rg-theme="dark"] .case-technical-id {
+  background: #101c28 !important;
+  border-color: #31475c !important;
+}
+
+/* General secondary text */
+:root[data-rg-theme="dark"] .checks-panel p,
+:root[data-rg-theme="dark"] .checks-panel small,
+:root[data-rg-theme="dark"] .evidence-record__verified {
+  color: #a8b7c7 !important;
+}
+
+/* =========================================================
+   DARK THEME — MOBILE POLISH
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+  /* Give theme toggle breathing room from role selector */
+  :root[data-rg-theme="dark"] .rg-header__right {
+    gap: 10px !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-theme-toggle {
+    flex: 0 0 auto !important;
+    width: 48px !important;
+    height: 48px !important;
+    margin-right: 4px !important;
+  }
+
+  /* Mobile workspace hero */
+  :root[data-rg-theme="dark"] .rg-dashboard-card {
+    background: #142333 !important;
+    border-color: #31475c !important;
+    color: #f1f5f9 !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-dashboard-card h2,
+  :root[data-rg-theme="dark"] .rg-dashboard-card strong {
+    color: #f1f5f9 !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-dashboard-card p,
+  :root[data-rg-theme="dark"] .rg-dashboard-card span {
+    color: #a8b7c7 !important;
+  }
+
+  /* Pending / Approved / Rejected stats */
+  :root[data-rg-theme="dark"] .rg-dashboard-stats {
+    background: #142333 !important;
+    border-color: #31475c !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-dashboard-stat {
+    background: #142333 !important;
+    border-color: #31475c !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-dashboard-stat strong {
+    color: #f1f5f9 !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-dashboard-stat span {
+    color: #9fb0c2 !important;
+  }
+
+  /* Mobile access card */
+  :root[data-rg-theme="dark"] .rg-access-card,
+  :root[data-rg-theme="dark"] .rg-access-strip {
+    background: #142333 !important;
+    border-color: #31475c !important;
+    color: #f1f5f9 !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-access-strip__role {
+    color: #f1f5f9 !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-access-strip__permissions span {
+    color: #b3c1cf !important;
+  }
+}
+
+/* =========================================================
+   DARK THEME — MOBILE WORKSPACE FINAL
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+  /* Main workspace card */
+  :root[data-rg-theme="dark"] .rg-mobile-workspace__intro {
+    background: #142333 !important;
+    border-color: #31475c !important;
+    color: #f1f5f9 !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-mobile-workspace__eyebrow {
+    color: #5f96ff !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-mobile-workspace__heading h2 {
+    color: #f1f5f9 !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-mobile-workspace__heading p {
+    color: #a8b7c7 !important;
+  }
+
+  /* Total counter */
+  :root[data-rg-theme="dark"] .rg-mobile-workspace__total {
+    background: #192b3d !important;
+    border-color: #3a5269 !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-mobile-workspace__total span {
+    color: #f1f5f9 !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-mobile-workspace__total small {
+    color: #91a5b9 !important;
+  }
+
+  /* Keep primary CTA blue */
+  :root[data-rg-theme="dark"] .rg-mobile-workspace__primary {
+    background: #24579b !important;
+    color: #ffffff !important;
+  }
+
+  /* Stats container */
+  :root[data-rg-theme="dark"] .rg-mobile-workspace__stats {
+    background: #142333 !important;
+    border-color: #31475c !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-mobile-stat {
+    background: #142333 !important;
+    border-color: #31475c !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-mobile-stat strong,
+  :root[data-rg-theme="dark"] .rg-mobile-stat b {
+    color: #f1f5f9 !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-mobile-stat small {
+    color: #91a5b9 !important;
+  }
+
+  /* Access card */
+  :root[data-rg-theme="dark"] .rg-mobile-workspace__access {
+    background: #142333 !important;
+    border-color: #31475c !important;
+    color: #f1f5f9 !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-mobile-workspace__access-head small {
+    color: #8fa7bd !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-mobile-workspace__access-head strong {
+    color: #f1f5f9 !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-mobile-workspace__permissions span {
+    color: #b7c5d3 !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-mobile-workspace__permissions i {
+    color: #20c997 !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-mobile-workspace__check {
+    background: #15382f !important;
+    border-color: #2c8068 !important;
+    color: #6ee7b7 !important;
+  }
+}
+
+/* =========================================================
+   THEME TOGGLE — REFINED
+   ========================================================= */
+
+.rg-theme-toggle {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  border-radius: 50% !important;
+  font-size: 20px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  margin-right: 10px !important;
+
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+}
+
+/* Light mode moon */
+:root:not([data-rg-theme="dark"]) .rg-theme-toggle {
+  background: rgba(255, 255, 255, 0.10) !important;
+  border-color: rgba(255, 255, 255, 0.24) !important;
+  color: #ffffff !important;
+}
+
+/* Dark mode sun */
+:root[data-rg-theme="dark"] .rg-theme-toggle {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: rgba(255, 255, 255, 0.20) !important;
+}
+
+/* Mobile */
+@media (max-width: 900px) {
+  .rg-theme-toggle {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    font-size: 18px !important;
+    margin-right: 14px !important;
+  }
+}
+
+/* =========================================================
+   THEME GEOMETRY LOCK
+   Light and dark modes must share identical dimensions.
+   Theme changes should affect appearance only.
+   ========================================================= */
+
+/* Header utility area */
+.rg-header__right,
+:root[data-rg-theme="dark"] .rg-header__right {
+  gap: 12px !important;
+}
+
+/* Theme switch — identical geometry in both themes */
+.rg-theme-toggle,
+:root:not([data-rg-theme="dark"]) .rg-theme-toggle,
+:root[data-rg-theme="dark"] .rg-theme-toggle {
+  box-sizing: border-box !important;
+  flex: 0 0 42px !important;
+  width: 42px !important;
+  min-width: 42px !important;
+  max-width: 42px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  padding: 0 !important;
+  margin: 0 10px 0 0 !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-radius: 50% !important;
+  line-height: 1 !important;
+  font-size: 20px !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease !important;
+}
+
+/* Dashboard geometry remains identical during theme switch */
+.rg-mobile-workspace__intro,
+.rg-mobile-workspace__stats,
+.rg-mobile-workspace__access,
+.rg-mobile-stat,
+.rg-mobile-workspace__total {
+  box-sizing: border-box !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease !important;
+}
+
+/* Page-level colour transition without animating dimensions */
+body,
+.page-shell,
+.checks-layout,
+.rg-mobile-workspace {
+  transition:
+    background-color 180ms ease,
+    color 180ms ease !important;
+}
+
+/* Mobile geometry lock */
+@media (max-width: 900px) {
+  .rg-header__right,
+  :root[data-rg-theme="dark"] .rg-header__right {
+    gap: 12px !important;
+  }
+
+  .rg-theme-toggle,
+  :root:not([data-rg-theme="dark"]) .rg-theme-toggle,
+  :root[data-rg-theme="dark"] .rg-theme-toggle {
+    flex: 0 0 38px !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+
+    margin: 0 14px 0 0 !important;
+    padding: 0 !important;
+    font-size: 18px !important;
+  }
+}
+
+/* =========================================================
+   MOBILE — CLEAN DIVIDERS + SECTION SPACING
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+  /* Remove harsh divider lines from mobile stats */
+  .rg-mobile-workspace__stats {
+    overflow: hidden !important;
+  }
+
+  .rg-mobile-stat {
+    border-top: 0 !important;
+    border-bottom: 0 !important;
+  }
+
+  .rg-mobile-stat + .rg-mobile-stat {
+    border-left-color: rgba(148, 163, 184, 0.28) !important;
+  }
+
+  /* Dark mode: softer separators */
+  :root[data-rg-theme="dark"] .rg-mobile-stat + .rg-mobile-stat {
+    border-left-color: #31475c !important;
+  }
+
+  /* Space between filters/dashboard nav and case list */
+  .checks-layout:not(.no-selection) .table-shell {
+    margin-top: 12px !important;
+  }
+
+  /* Keep the Dashboard row visually separate from first case */
+  .cases-dashboard-back {
+    margin-bottom: 10px !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE STATS — REMOVE INTERNAL DIVIDER LINES
+   ========================================================= */
+
+@media (max-width: 900px) {
+  .rg-mobile-workspace__stats .rg-mobile-stat,
+  .rg-mobile-workspace__stats .rg-mobile-stat + .rg-mobile-stat {
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-top: 0 !important;
+    border-bottom: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+  }
+
+  .rg-mobile-workspace__stats {
+    column-gap: 0 !important;
+  }
+
+  /* Preserve only the outer card border */
+  .rg-mobile-workspace__stats {
+    border: 1px solid #d7e1ec !important;
+  }
+
+  :root[data-rg-theme="dark"] .rg-mobile-workspace__stats {
+    border-color: #31475c !important;
+  }
+}
+
+/* =========================================================
+   MOBILE WORKSPACE — REMOVE OUTER RAILS
+   ========================================================= */
+
+@media (max-width: 900px) {
+  .rg-mobile-workspace {
+    border: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  /* Keep the individual cards clean and independent */
+  .rg-mobile-workspace__intro,
+  .rg-mobile-workspace__stats,
+  .rg-mobile-workspace__access {
+    position: relative;
+    width: 100% !important;
+  }
+}
+
+/* =========================================================
+   MOBILE WORKSPACE — FINAL EDGE CLEANUP
+   Removes legacy white rails / sharp background strips
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+  .rg-mobile-workspace {
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  .rg-mobile-workspace::before,
+  .rg-mobile-workspace::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  .rg-mobile-workspace__intro,
+  .rg-mobile-workspace__stats,
+  .rg-mobile-workspace__access {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  :root:not([data-rg-theme="dark"]) .rg-mobile-workspace__intro,
+  :root:not([data-rg-theme="dark"]) .rg-mobile-workspace__stats {
+    background: #ffffff !important;
+  }
+
+  :root:not([data-rg-theme="dark"]) .rg-mobile-workspace__access {
+    background: #f8fafc !important;
+  }
+}
+
+/* =========================================================
+   MOBILE WORKSPACE — CLEAN CARD LAYOUT
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+  /* Remove every legacy wrapper surface */
+  .checks-layout.no-selection .checks-table,
+  .checks-layout.no-selection .table-shell,
+  .checks-layout.no-selection .table-shell > div,
+  .rg-mobile-workspace {
+    background: transparent !important;
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .rg-mobile-workspace::before,
+  .rg-mobile-workspace::after,
+  .checks-layout.no-selection .checks-table::before,
+  .checks-layout.no-selection .checks-table::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  /* Proper breathing room below case filters */
+  .checks-layout.no-selection .rg-mobile-workspace {
+    margin-top: 18px !important;
+  }
+
+  /* Independent workspace cards */
+  .rg-mobile-workspace__intro,
+  .rg-mobile-workspace__stats,
+  .rg-mobile-workspace__access {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  /* Visible separation between cards */
+  .rg-mobile-workspace__intro {
+    margin-bottom: 14px !important;
+  }
+
+  .rg-mobile-workspace__stats {
+    margin-bottom: 14px !important;
+  }
+
+  /* Light theme surfaces */
+  :root:not([data-rg-theme="dark"]) .rg-mobile-workspace__intro,
+  :root:not([data-rg-theme="dark"]) .rg-mobile-workspace__stats {
+    background: #ffffff !important;
+    border: 1px solid #d7e1ec !important;
+  }
+
+  :root:not([data-rg-theme="dark"]) .rg-mobile-workspace__access {
+    background: #f8fafc !important;
+    border: 1px solid #d7e1ec !important;
+  }
+
+  /* Dark theme equivalents */
+  :root[data-rg-theme="dark"] .rg-mobile-workspace__intro,
+  :root[data-rg-theme="dark"] .rg-mobile-workspace__stats,
+  :root[data-rg-theme="dark"] .rg-mobile-workspace__access {
+    border: 1px solid #31475c !important;
+  }
+}
+
+/* =========================================================
+   DARK THEME — EVIDENCE VALUE CONTRAST
+   ========================================================= */
+
+:root[data-rg-theme="dark"] .evidence-record__value,
+:root[data-rg-theme="dark"] .evidence-record__value *,
+:root[data-rg-theme="dark"] .evidence-value,
+:root[data-rg-theme="dark"] .evidence-value * {
+  color: #e2e8f0 !important;
+}
+
+
+/* =========================================================
+   DARK THEME — EVIDENCE CONTENT CONTRAST (FINAL)
+   ========================================================= */
+
+:root[data-rg-theme="dark"] .evidence-field__value,
+:root[data-rg-theme="dark"] .evidence-simple-value {
+  color: #e2e8f0 !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-field__label {
+  color: #8fa7bd !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-link {
+  color: #7db4ff !important;
+  text-decoration-color: rgba(125, 180, 255, 0.45) !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-record__meta strong {
+  color: #dbe7f3 !important;
+}
+
+:root[data-rg-theme="dark"] .evidence-record__meta > div > span {
+  color: #8fa7bd !important;
+}
+
+
+/* =========================================================
+   DARK THEME — REMOVE BRIGHT SECTION EDGE
+   ========================================================= */
+
+@media (max-width: 900px) {
+  :root[data-rg-theme="dark"] .checks-layout {
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+  }
+
+  :root[data-rg-theme="dark"] .checks-panel {
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+  }
+
+  :root[data-rg-theme="dark"] .full-review-shell,
+  :root[data-rg-theme="dark"] .full-review-panel {
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Prevent any inherited white side rails */
+  :root[data-rg-theme="dark"] .checks-layout::before,
+  :root[data-rg-theme="dark"] .checks-layout::after,
+  :root[data-rg-theme="dark"] .checks-panel::before,
+  :root[data-rg-theme="dark"] .checks-panel::after {
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+}

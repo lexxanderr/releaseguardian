@@ -300,6 +300,16 @@ export default function App() {
   const isMobile = useMediaQuery('(max-width: 900px)');
 
   const [role, setRole] = useState<Role>('SUPERVISOR');
+
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('rg-theme');
+    return saved === 'dark' ? 'dark' : 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.dataset.rgTheme = theme;
+    localStorage.setItem('rg-theme', theme);
+  }, [theme]);
   const [status, setStatus] = useState<StatusFilter>('ALL');
 
   const [checks, setChecks] = useState<Check[]>([]);
@@ -438,7 +448,11 @@ export default function App() {
 
     let alive = true;
 
-    setLoading(true);
+    // Only show skeletons when we genuinely have no data yet.
+    // Filter changes keep the current rows visible until the new result arrives.
+    if (fullListRef.current.length === 0) {
+      setLoading(true);
+    }
     setListError(null);
 
     http(`/checks?${query}`, { headers: { 'x-rg-role': role } })
@@ -638,21 +652,6 @@ export default function App() {
     }
   };
 
-  const refreshSelectedDetail = async () => {
-    if (!selectedId) return;
-
-    try {
-      const res = await http(`/checks/${selectedId}`, {
-        headers: { 'x-rg-role': role },
-      });
-      if (!res.ok) throw new Error(`Details HTTP ${res.status}`);
-      const d = (await res.json()) as Check;
-      setDetail(d);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   const goToDashboard = () => {
     setHasEngaged(false);
     setSearchMode(false);
@@ -771,6 +770,16 @@ export default function App() {
 
           {/* RIGHT: Filters + Role */}
           <div className="rg-header__right">
+            <button
+              type="button"
+              className="rg-theme-toggle"
+              onClick={() => setTheme((current) => current === 'light' ? 'dark' : 'light')}
+              aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+              title={`${theme === 'light' ? 'Dark' : 'Light'} mode`}
+            >
+              <span aria-hidden="true">{theme === 'light' ? '☾' : '☀'}</span>
+            </button>
+
             <div className="role-switch rg-rolepill">
               <label>
                 <span className="rg-rolepill__label">
@@ -1172,8 +1181,8 @@ export default function App() {
                             role={role}
                             checkStatus={detail.status}
                             onAdded={() => {
+                              // Refresh evidence in place without reloading the whole case view.
                               setEvidenceRefreshKey((k) => k + 1);
-                              refreshSelectedDetail();
                             }}
                           />
 
