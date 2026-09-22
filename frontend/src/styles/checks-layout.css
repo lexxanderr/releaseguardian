@@ -4948,3 +4948,66 @@ body.rg-resizing * {
   outline-offset: 6px;
   border-radius: 8px;
 }
+
+/* Case list → dashboard navigation */
+.cases-dashboard-back {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #315f86;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 14px 16px;
+  margin: 0;
+  cursor: pointer;
+  text-align: left;
+  transition: opacity 0.15s ease;
+}
+
+.cases-dashboard-back:hover {
+  opacity: 0.72;
+}
+
+@media (max-width: 900px) {
+  .cases-dashboard-back {
+    display: block;
+    width: auto;
+    min-height: 44px;
+    padding: 13px 14px;
+    margin: 0 0 2px;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    color: #315f86;
+    font-size: 14px;
+    font-weight: 650;
+    box-shadow: none;
+  }
+}
+
+/* Refined case-list dashboard link */
+@media (max-width: 900px) {
+  .cases-dashboard-back {
+    display: inline-flex;
+    align-items: center;
+    width: auto;
+    min-height: 36px;
+    margin: 6px 0 6px 8px;
+    padding: 7px 10px;
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    box-shadow: none;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .cases-dashboard-back:active {
+    background: #f1f5f9;
+    color: #315f86;
+  }
+}

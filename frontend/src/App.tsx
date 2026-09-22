@@ -654,7 +654,7 @@ export default function App() {
   };
 
   const goToDashboard = () => {
-    setHasEngaged(true);
+    setHasEngaged(false);
     setSearchMode(false);
     setSearchId('');
     setSearchError(null);
@@ -893,7 +893,16 @@ export default function App() {
                 }}
               />
             ) : (
-              <div className="table-shell">
+              <>
+                <button
+                  type="button"
+                  className="cases-dashboard-back"
+                  onClick={goToDashboard}
+                >
+                  ‹  Dashboard
+                </button>
+
+                <div className="table-shell">
                 <table cellPadding={8} cellSpacing={0}>
                   <thead>
                     <tr>
@@ -992,6 +1001,7 @@ export default function App() {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
           </div>
 
